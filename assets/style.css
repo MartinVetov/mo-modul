@@ -1,0 +1,217 @@
+/* =====================================================================
+   Модул „Анализи на МО“ – облик, съобразен с ВИС на гимназията:
+   плътна синя лента, бяло странично меню, сини бутони с градиент,
+   секции със син заглавен ред и тънка линия отдолу.
+   ===================================================================== */
+
+:root{
+  --blue:#2b5faa;          /* лентата отгоре */
+  --blue-dk:#1c4a8f;
+  --blue-deep:#16407d;
+  --blue-light:#4a7fc8;
+  --link:#2b6cb0;
+  --ink:#1f2937;
+  --ink-soft:#5b6676;
+  --line:#dfe4ec;
+  --bg:#ffffff;
+  --panel:#ffffff;
+  --ok:#15803d;
+  --red:#c62828;
+  --amber:#b45309;
+  --radius:8px;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.55 "Segoe UI", Roboto, Arial, sans-serif;
+}
+a{color:var(--link); text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--blue-light); outline-offset:2px}
+
+/* ---------- горна лента ---------- */
+.vis-top{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:1rem;
+  background:var(--blue); color:#fff; padding:.55rem 1rem;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+.vis-title{flex:1; text-align:center; font-size:1.15rem; font-weight:700}
+.vis-title .ico{margin-right:.35rem}
+.vis-user{display:flex; align-items:center; gap:.6rem}
+.vis-user .uname{font-size:.85rem; line-height:1.15; text-align:right; max-width:130px}
+.avatar{
+  display:grid; place-items:center; width:38px; height:38px; border-radius:50%;
+  background:#fff; color:var(--blue); font-weight:700; border:2px solid #fff;
+}
+.burger{
+  display:none; background:transparent; border:0; color:#fff; font-size:1.3rem; cursor:pointer;
+}
+
+/* ---------- странично меню ---------- */
+.vis-body{display:flex; align-items:flex-start; min-height:calc(100vh - 54px)}
+.vis-side{
+  width:250px; flex:0 0 250px; border-right:1px solid var(--line);
+  padding:1rem .6rem; position:sticky; top:54px; align-self:flex-start;
+}
+.side-head{display:flex; gap:.6rem; align-items:center; padding:0 .5rem 1rem; border-bottom:1px solid var(--line)}
+.side-head .mark{
+  display:grid; place-items:center; width:44px; height:44px; border-radius:50%;
+  background:linear-gradient(160deg,#4a7fc8,#16407d); color:#fff; font-weight:700;
+}
+.side-head strong{display:block; color:var(--blue-deep)}
+.side-head small{color:var(--ink-soft); font-size:.75rem}
+.vis-side nav{display:flex; flex-direction:column; gap:.1rem; padding:.7rem 0}
+.vis-side nav a{
+  display:flex; align-items:center; gap:.6rem; padding:.5rem .6rem;
+  border-radius:var(--radius); color:var(--link); font-size:.95rem;
+}
+.vis-side nav a:hover{background:#eef3fb; text-decoration:none}
+.vis-side nav a.on{background:var(--blue); color:#fff}
+.vis-side nav a .i{width:1.2rem; text-align:center}
+.vis-side nav a.back{margin-top:.5rem; color:var(--ink-soft); border-top:1px solid var(--line); border-radius:0; padding-top:.7rem}
+.side-foot{padding:.8rem .6rem; color:var(--ink-soft); font-size:.8rem; border-top:1px solid var(--line)}
+
+main{flex:1; min-width:0; padding:1.2rem clamp(.7rem,2vw,1.6rem) 3rem}
+
+/* ---------- бутоните от началния екран ---------- */
+.topbtns{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem; margin-bottom:1.4rem}
+.topbtn{
+  display:block; text-align:center; padding:1.15rem 1rem; border-radius:12px;
+  background:linear-gradient(180deg,#3d74bf,#1c4a8f); color:#fff; font-weight:600;
+  box-shadow:0 3px 8px rgba(28,74,143,.25);
+}
+.topbtn:hover{background:linear-gradient(180deg,#4a80c9,#16407d); text-decoration:none}
+.topbtn small{display:block; font-weight:400; font-size:.8rem; opacity:.85; margin-top:.15rem}
+.topbtn.muted{background:linear-gradient(180deg,#7f93ad,#5b6d85)}
+
+/* ---------- заглавие на секция ---------- */
+.sec-title{display:flex; align-items:flex-end; gap:1rem; flex-wrap:wrap;
+           border-bottom:2px solid var(--blue); padding-bottom:.35rem; margin:0 0 1.1rem}
+.sec-title h1{margin:0; font-size:1.4rem; font-weight:600; color:var(--blue)}
+.sec-title .right{margin-left:auto; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap}
+h2{font-size:1.05rem; color:var(--blue-deep); margin:1.3rem 0 .5rem}
+h3{font-size:.95rem; margin:.8rem 0 .3rem}
+
+/* ---------- панели и редове (както „Добавяне на лекторски часове“) ---------- */
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:10px;
+       padding:1rem 1.1rem; margin:0 0 1.1rem; box-shadow:0 1px 3px rgba(16,42,80,.05)}
+.rowcard{border:1px solid var(--line); border-radius:10px; padding:1rem; margin:0 0 1rem; background:#fff}
+.rowcard.done{border-color:#bcd9c6; background:#fbfefc}
+.rowhead{display:flex; align-items:center; gap:1rem; margin-bottom:.7rem}
+.rowhead b{color:var(--ink)}
+.rowhead .del{margin-left:auto; color:var(--red); background:none; border:0; cursor:pointer; font-size:.9rem}
+.rowhead .del:hover{text-decoration:underline}
+.addrow{display:inline-flex; align-items:center; gap:.4rem; background:none; border:0;
+        color:var(--link); font-size:1rem; cursor:pointer; padding:.4rem 0}
+.addrow:hover{text-decoration:underline}
+
+/* ---------- форми ---------- */
+label{display:block; margin:.55rem 0; font-size:.88rem; color:var(--ink-soft)}
+input[type=text], input[type=email], input[type=number], input[type=date], select, textarea{
+  display:block; width:100%; margin-top:.25rem; padding:.55rem .7rem;
+  border:1px solid #cbd5e1; border-radius:22px; background:#fff; font:inherit; color:var(--ink);
+}
+textarea{border-radius:12px; resize:vertical}
+select{appearance:auto}
+input:focus, select:focus, textarea:focus{border-color:var(--blue-light); outline:none;
+  box-shadow:0 0 0 3px rgba(74,127,200,.15)}
+input:disabled, textarea:disabled, select:disabled{background:#f1f5f9; color:var(--ink-soft)}
+.fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.6rem}
+.fields.three{grid-template-columns:2fr 1fr 1fr}
+.grades{display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:.5rem}
+.picker{display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1rem}
+.picker label{margin:0}
+.picker select{min-width:160px}
+.inline-note{margin-top:.6rem}
+
+/* ---------- бутони ---------- */
+.btn{display:inline-block; padding:.5rem 1.1rem; border-radius:22px; border:1px solid var(--blue);
+     background:#fff; color:var(--blue); font:inherit; font-size:.92rem; cursor:pointer}
+.btn:hover{background:#eef3fb; text-decoration:none}
+.btn.primary{background:linear-gradient(180deg,#3d74bf,#1c4a8f); color:#fff; border-color:#1c4a8f}
+.btn.primary:hover{background:linear-gradient(180deg,#4a80c9,#16407d)}
+.btn.ghost{border-color:#cbd5e1; color:var(--ink-soft)}
+.btn.danger{border-color:var(--red); color:var(--red)}
+.btn.small{padding:.28rem .75rem; font-size:.83rem}
+.actions{display:flex; gap:.6rem; flex-wrap:wrap; margin:1.2rem 0; position:sticky; bottom:0;
+         background:linear-gradient(180deg,rgba(255,255,255,0),#fff 35%); padding:.8rem 0}
+
+/* ---------- компетентности: три състояния ---------- */
+.comps{border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:.6rem}
+.comps .chead{display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;
+              background:#f5f8fc; padding:.5rem .7rem; border-bottom:1px solid var(--line); font-size:.85rem}
+.comps .chead .cnt{margin-left:auto; color:var(--ink-soft)}
+.comp{display:flex; gap:.7rem; align-items:flex-start; padding:.5rem .7rem; border-bottom:1px solid #eef1f6; cursor:pointer}
+.comp:last-child{border-bottom:0}
+.comp:hover{background:#f8fafd}
+.comp .box{
+  flex:0 0 auto; width:22px; height:22px; border:2px solid #b6c2d4; border-radius:5px;
+  display:grid; place-items:center; font-weight:700; color:transparent; background:#fff; margin-top:.1rem;
+}
+.comp .txt{flex:1; font-size:.93rem}
+.comp .code{display:inline-block; font-family:Consolas,monospace; font-size:.76rem; background:#eef2f8;
+            padding:.05rem .35rem; border-radius:4px; margin-right:.4rem; color:var(--blue-deep)}
+.comp .src{display:block; font-size:.76rem; color:var(--ink-soft)}
+.comp .tag{font-size:.72rem; padding:.05rem .4rem; border-radius:99px; background:#fdf1dc; color:var(--amber)}
+.comp[data-state="mastered"] .box{background:var(--ok); border-color:var(--ok); color:#fff}
+.comp[data-state="mastered"] .box::after{content:"✓"}
+.comp[data-state="not_mastered"] .box{background:var(--red); border-color:var(--red); color:#fff}
+.comp[data-state="not_mastered"] .box::after{content:"✕"}
+.comp[data-state="not_mastered"]{background:#fdf4f4}
+.legend{display:flex; gap:1rem; flex-wrap:wrap; font-size:.82rem; color:var(--ink-soft); margin:.5rem 0}
+.legend i{display:inline-block; width:14px; height:14px; border-radius:4px; vertical-align:-2px; margin-right:.3rem}
+.legend .g{background:var(--ok)} .legend .r{background:var(--red)} .legend .n{background:#fff; border:2px solid #b6c2d4}
+
+/* ---------- таблици ---------- */
+table.grid{width:100%; border-collapse:collapse; font-size:.92rem; background:#fff}
+table.grid th, table.grid td{border-bottom:1px solid var(--line); padding:.5rem .6rem; text-align:left; vertical-align:top}
+table.grid thead th{background:#f5f8fc; color:var(--blue-deep); font-size:.8rem; text-transform:uppercase; letter-spacing:.02em}
+table.grid tbody tr:hover{background:#f9fbfe}
+table.grid tr.off{opacity:.55}
+.diag td{padding:.25rem .5rem; border-bottom:1px solid var(--line); font-size:.85rem}
+
+/* ---------- дребни ---------- */
+.badge{display:inline-block; padding:.1rem .55rem; border-radius:99px; font-size:.76rem; background:#eef2f7; color:var(--ink-soft)}
+.badge.ok{background:#e6f4ea; color:var(--ok)}
+.badge.warn{background:#fdf1dc; color:var(--amber)}
+.badge.red{background:#fdeaea; color:var(--red)}
+.muted{color:var(--ink-soft)}
+.small{font-size:.83rem}
+.danger{color:var(--red); font-weight:600}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.8rem; margin:1rem 0}
+.stat{background:#fff; border:1px solid var(--line); border-radius:10px; padding:.85rem 1rem}
+.stat .k{display:block; font-size:1.6rem; font-weight:700; color:var(--blue-deep)}
+.stat .l{font-size:.8rem; color:var(--ink-soft)}
+.flash{padding:.65rem .9rem; border-radius:8px; margin:0 0 1rem; border:1px solid}
+.flash.ok{background:#e9f6ee; border-color:#bfe0cb; color:var(--ok)}
+.flash.err{background:#fdecec; border-color:#f3c4c4; color:var(--red)}
+.flash.warn{background:#fdf6e6; border-color:#eddfb5; color:var(--amber)}
+
+/* ---------- страница без сесия ---------- */
+body.plain{background:#f2f5fa}
+.nosession{min-height:100vh; display:grid; place-items:center; padding:1.5rem}
+.nosession .panel{max-width:560px}
+.nosession h1{color:var(--blue); font-size:1.3rem; margin-top:0}
+
+/* ---------- малки екрани ---------- */
+@media (max-width:900px){
+  .burger{display:block}
+  .vis-side{position:fixed; top:54px; bottom:0; left:-260px; background:#fff; z-index:25;
+            transition:left .2s; overflow:auto}
+  body.nav-open .vis-side{left:0; box-shadow:4px 0 16px rgba(0,0,0,.15)}
+  .vis-title{font-size:.95rem; text-align:left}
+  .fields.three{grid-template-columns:1fr}
+  table.grid thead{display:none}
+  table.grid tbody td{display:block; border:0; padding:.15rem .4rem}
+  table.grid tbody tr{display:block; border-bottom:1px solid var(--line); padding:.5rem 0}
+}
+
+@media print{
+  .no-print, .vis-top, .vis-side{display:none !important}
+  .vis-body{display:block}
+  main{padding:0}
+  .panel, .rowcard{border:0; box-shadow:none; padding:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
