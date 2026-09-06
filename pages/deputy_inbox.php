@@ -8,7 +8,7 @@ $yid  = current_year_id();
 $term = term_code($_GET['term'] ?? 'I');
 $open = (int)($_GET['open'] ?? 0);
 
-$where = has_role('admin', $u) && !has_role('deputy', $u) ? '' : ' AND (s.deputy_id = :d OR s.deputy_id IS NULL)';
+$where = has_role('admin', $u) && !has_role('deputy', $u) ? '' : ' AND s.deputy_id = :d';
 $P = [':y' => $yid, ':t' => $term];
 if ($where !== '') $P[':d'] = $u['id'];
 
@@ -65,18 +65,24 @@ year_picker($term);
 
   <h2>Силни страни</h2>       <p><?= nl2br(e($doc['strengths'])) ?></p>
   <h2>Области за подобрение</h2><p><?= nl2br(e($doc['improvements'])) ?></p>
-  <h2>Мерки</h2>              <p><?= nl2br(e($doc['measures'])) ?></p>
+  <?php if (trim((string)$doc['summary_text']) !== ''): ?>
+    <h2>Обобщение на МО</h2><p><?= nl2br(e($doc['summary_text'])) ?></p>
+  <?php endif; ?>
+  <h2>Мерки</h2><p><?= nl2br(e($doc['measures'])) ?></p>
+  <?php if (trim((string)$doc['notes']) !== ''): ?>
+    <h2>Бележки на методиста</h2><p><?= nl2br(e($doc['notes'])) ?></p>
+  <?php endif; ?>
   <?php if (trim((string)$doc['other']) !== ''): ?>
     <h2>Други</h2><p><?= nl2br(e($doc['other'])) ?></p>
   <?php endif; ?>
 
   <h2>Анализи в основата на обобщението (<?= count($rows) ?>)</h2>
   <table class="grid">
-    <thead><tr><th>Учител</th><th>Паралелка</th><th>Предмет</th><th>Усвоени</th><th>Неусвоени</th><th>Ср. успех</th></tr></thead>
+    <thead><tr><th>Учител</th><th>Паралелка</th><th>Предмет</th><th>Усвоени</th><th>Частично</th><th>Неусвоени</th><th>Ср. успех</th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): ?>
       <tr><td><?= e($r['teacher_name']) ?></td><td><?= e($r['class_name']) ?></td>
-          <td><?= e($r['subject_name']) ?></td><td><?= (int)$r['c_mastered'] ?></td>
+          <td><?= e($r['subject_name']) ?></td><td><?= (int)$r['c_mastered'] ?></td><td><?= (int)$r['c_partial'] ?></td>
           <td class="<?= (int)$r['c_failed'] ? 'danger' : '' ?>"><?= (int)$r['c_failed'] ?></td>
           <td><?= fmt_avg($r['avg_grade']) ?></td></tr>
     <?php endforeach; ?>

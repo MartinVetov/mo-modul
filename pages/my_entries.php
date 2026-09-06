@@ -45,7 +45,7 @@ year_picker($term);
 <table class="grid">
   <thead>
     <tr><th>Паралелка</th><th>Предмет</th><th>Група</th><th>Компетентности</th>
-        <th>Ср. успех</th><th>Бележки</th><th>Статус</th><th></th></tr>
+        <th>Ср. успех</th><th>Мерки</th><th>Статус</th><th></th></tr>
   </thead>
   <tbody>
   <?php foreach ($rows as $r):
@@ -56,11 +56,12 @@ year_picker($term);
       <td><?= e(GROUPS[(string)$r['group_no']] ?? '') ?></td>
       <td class="small">
         <span class="badge ok"><?= (int)$r['c_mastered'] ?> усвоени</span>
+        <span class="badge warn"><?= (int)$r['c_partial'] ?> частично</span>
         <span class="badge red"><?= (int)$r['c_failed'] ?> неусвоени</span>
         <span class="badge warn"><?= $left ?> за II срок</span>
       </td>
       <td><?= fmt_avg($r['avg_grade']) ?></td>
-      <td class="small"><?= e(mb_strimwidth((string)$r['note'], 0, 70, '…')) ?></td>
+      <td class="small"><?= e(mb_strimwidth((string)$r['measures'], 0, 70, '…')) ?></td>
       <td>
         <?php if ($r['status'] === 'sent'): ?>
           <span class="badge ok">изпратен</span><br>
@@ -70,13 +71,17 @@ year_picker($term);
         <?php endif; ?>
       </td>
       <td>
-        <form method="post" onsubmit="return confirm('Сигурни ли сте?')">
+        <form method="post">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
           <?php if ($r['status'] === 'sent'): ?>
-            <button class="btn small ghost" name="action" value="withdraw" type="submit">Върни за редакция</button>
+            <button class="btn small ghost" name="action" value="withdraw" type="submit"
+                    data-confirm="Анализът се връща в чернови и методистът няма да го вижда, докато не го изпратите отново."
+                    data-confirm-title="Връщане за редакция" data-confirm-ok="Върни">Върни за редакция</button>
           <?php else: ?>
-            <button class="btn small danger" name="action" value="delete" type="submit">Изтрий</button>
+            <button class="btn small danger" name="action" value="delete" type="submit" data-danger
+                    data-confirm="Черновата ще бъде изтрита заедно с отметките по компетентностите."
+                    data-confirm-title="Изтриване на чернова" data-confirm-ok="Изтрий">Изтрий</button>
           <?php endif; ?>
         </form>
       </td>

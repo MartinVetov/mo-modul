@@ -12,6 +12,7 @@ function nav_items(array $u): array
     if (has_role('methodist', $u)) {
         $n[] = ['url' => base_url('pages/methodist_inbox.php'), 'icon' => '⇩', 'label' => 'Получени анализи', 'key' => 'inbox'];
         $n[] = ['url' => base_url('pages/methodist_summary.php'), 'icon' => '▤', 'label' => 'Обобщение',      'key' => 'sum'];
+        $n[] = ['url' => base_url('pages/methodist_docs.php'),    'icon' => '📄', 'label' => 'Моите документи', 'key' => 'docs'];
     }
     if (has_role('deputy', $u)) {
         $n[] = ['url' => base_url('pages/deputy_inbox.php'), 'icon' => '★', 'label' => 'Обобщения от МО', 'key' => 'deputy'];
@@ -35,7 +36,7 @@ function header_html(string $title, string $active = ''): void
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> · <?= e(APP_NAME) ?></title>
-<link rel="stylesheet" href="<?= base_url('assets/style.css') ?>">
+<link rel="stylesheet" href="<?= asset_url('style.css') ?>">
 </head>
 <body>
 <header class="vis-top no-print">
@@ -84,7 +85,7 @@ function footer_html(): void
     ?>
   </main>
 </div>
-<script src="<?= base_url('assets/app.js') ?>"></script>
+<script src="<?= asset_url('app.js') ?>"></script>
 </body>
 </html>
 <?php

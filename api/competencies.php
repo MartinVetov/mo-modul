@@ -1,8 +1,8 @@
 <?php
 /**
- * Връща компетентностите за даден предмет и клас.
- * За II срок отбелязва кои са останали неотбелязани през I срок –
- * те се показват като „прехвърлена от I срок“.
+ * Връща компетентностите за предмет + паралелка.
+ * Взимат се тези за специалността на паралелката плюс общите за всички
+ * специалности. За II срок се отбелязват останалите неотбелязани от I срок.
  */
 require_once __DIR__ . '/../inc/bootstrap.php';
 
@@ -13,19 +13,17 @@ $classId   = (int)($_GET['class'] ?? 0);
 $term      = term_code($_GET['term'] ?? 'I');
 $group     = (string)($_GET['group'] ?? '0');
 if (!isset(GROUPS[$group])) $group = '0';
-$yid       = current_year_id();
+$yid = current_year_id();
 
 if (!$subjectId || !$classId) json_out(['ok' => false, 'error' => 'Липсва предмет или паралелка.'], 400);
 
-$class = one('SELECT * FROM mo_classes WHERE id = ?', [$classId]);
+$class = one('SELECT c.*, p.name AS program_name, p.kind AS program_kind
+              FROM mo_classes c
+              LEFT JOIN mo_programs p ON p.id = c.program_id
+              WHERE c.id = ?', [$classId]);
 if (!$class) json_out(['ok' => false, 'error' => 'Няма такава паралелка.'], 404);
 
-$comps = all(
-    'SELECT id, code, title, source FROM mo_competencies
-      WHERE subject_id = ? AND grade_level = ? AND is_active = 1
-      ORDER BY sort_order, id',
-    [$subjectId, $class['grade_level']]
-);
+$comps = competencies_for($subjectId, $classId);
 
 /* вече запазени отметки за този ред */
 $entry = one('SELECT id, status FROM mo_entries
@@ -38,30 +36,30 @@ if ($entry) {
     }
 }
 
-/* прехвърлени от I срок: маркирани няма, значи са останали за II */
+/* прехвърлени от I срок: тези, които са останали неотбелязани */
 $carried = [];
 if ($term === 'II') {
     $first = one('SELECT id FROM mo_entries
                   WHERE user_id=? AND year_id=? AND term="I" AND class_id=? AND subject_id=? AND group_no=?',
                  [$u['id'], $yid, $classId, $subjectId, $group]);
     if ($first) {
-        $markedInFirst = array_column(
+        $marked = array_map('intval', array_column(
             all('SELECT competency_id FROM mo_entry_competencies WHERE entry_id = ?', [$first['id']]),
-            'competency_id'
-        );
-        $markedInFirst = array_map('intval', $markedInFirst);
+            'competency_id'));
         foreach ($comps as $c) {
-            if (!in_array((int)$c['id'], $markedInFirst, true)) $carried[] = (int)$c['id'];
+            if (!in_array((int)$c['id'], $marked, true)) $carried[] = (int)$c['id'];
         }
     }
 }
 
 json_out([
-    'ok'      => true,
-    'class'   => $class['name'],
-    'grade'   => (int)$class['grade_level'],
-    'entry'   => $entry ? ['id' => (int)$entry['id'], 'status' => $entry['status']] : null,
-    'saved'   => $saved,
-    'carried' => $carried,
-    'items'   => $comps,
+    'ok'        => true,
+    'class'     => $class['name'],
+    'grade'     => (int)$class['grade_level'],
+    'program' => $class['program_name'],
+    'program_kind' => $class['program_kind'],
+    'locked'    => $entry && $entry['status'] === 'sent',
+    'saved'     => $saved,
+    'carried'   => $carried,
+    'items'     => $comps,
 ]);

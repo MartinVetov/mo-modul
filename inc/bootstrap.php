@@ -80,6 +80,19 @@ function json_out(array $d, int $code = 200)
     exit;
 }
 
+/**
+ * Адрес на файл от assets с версия накрая (?v=…).
+ * Версията е датата на промяна на файла, затова след обновяване
+ * браузърът зарежда новия файл, вместо стария от кеша.
+ */
+function asset_url(string $file): string
+{
+    $url = base_url('assets/' . ltrim($file, '/'));
+    $abs = __DIR__ . '/../assets/' . ltrim($file, '/');
+    $v = is_file($abs) ? (string)filemtime($abs) : (string)time();
+    return $url . '?v=' . $v;
+}
+
 function base_url(string $path = ''): string
 {
     $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
@@ -160,7 +173,11 @@ function user_name_sql(string $alias = 'u'): string
 /* ------------------------------------------------------------------ */
 const TERMS  = ['I' => 'I срок', 'II' => 'II срок'];
 const GROUPS = ['0' => 'цяла паралелка', '1' => 'I-ва група', '2' => 'II-ра група'];
-const STATES = ['mastered' => 'усвоена', 'not_mastered' => 'неусвоена'];
+const STATES = [
+    'mastered'     => 'усвоена',
+    'partial'      => 'частично усвоена',
+    'not_mastered' => 'неусвоена',
+];
 
 function term_code(?string $t): string { return isset(TERMS[(string)$t]) ? (string)$t : 'I'; }
 function term_label(?string $t): string { return TERMS[term_code($t)]; }
@@ -183,6 +200,81 @@ function methodist_of(int $teacherId, int $yearId): ?int
 {
     $r = one('SELECT methodist_id FROM mo_teacher_methodist WHERE teacher_id = ? AND year_id = ?', [$teacherId, $yearId]);
     return $r ? (int)$r['methodist_id'] : null;
+}
+
+/* Видове програми: новите професии и старите специалности. */
+const PROGRAM_KINDS = ['profession' => 'професия', 'specialty' => 'специалност'];
+
+/** Списък с професии и специалности за падащите менюта. */
+function programs(?string $kind = null, bool $onlyActive = true): array
+{
+    $sql = 'SELECT * FROM mo_programs WHERE 1=1';
+    $p = [];
+    if ($kind !== null)  { $sql .= ' AND kind = ?'; $p[] = $kind; }
+    if ($onlyActive)     { $sql .= ' AND is_active = 1'; }
+    return all($sql . ' ORDER BY kind DESC, name', $p);
+}
+
+function program_label(?array $prog): string
+{
+    if (!$prog) return '—';
+    return $prog['name'] . ' (' . (PROGRAM_KINDS[$prog['kind']] ?? $prog['kind']) . ')';
+}
+
+/** Професията или специалността на паралелка. */
+function class_program(int $classId): ?int
+{
+    $r = one('SELECT program_id FROM mo_classes WHERE id = ?', [$classId]);
+    return $r && $r['program_id'] !== null ? (int)$r['program_id'] : null;
+}
+
+/**
+ * Компетентностите за предмет + паралелка: тези за професията или
+ * специалността на паралелката плюс общите (program_id IS NULL).
+ */
+function competencies_for(int $subjectId, int $classId): array
+{
+    $c = one('SELECT grade_level, program_id FROM mo_classes WHERE id = ?', [$classId]);
+    if (!$c) return [];
+    return all(
+        'SELECT k.id, k.code, k.title, k.source, k.program_id,
+                pr.name AS program_name, pr.kind AS program_kind
+         FROM mo_competencies k
+         LEFT JOIN mo_programs pr ON pr.id = k.program_id
+         WHERE k.subject_id = ? AND k.grade_level = ? AND k.is_active = 1
+           AND (k.program_id IS NULL OR k.program_id <=> ?)
+         ORDER BY k.sort_order, k.id',
+        [$subjectId, $c['grade_level'], $c['program_id']]
+    );
+}
+
+/**
+ * Прехвърля паралелките от една учебна година в друга: 8А става 9А
+ * със същата професия, дванадесетите отпадат (завършват).
+ * Връща [създадени, отпаднали].
+ */
+function promote_classes(int $fromYear, int $toYear): array
+{
+    $src = all('SELECT * FROM mo_classes WHERE year_id = ? AND is_active = 1
+                ORDER BY grade_level, letter', [$fromYear]);
+    $made = 0; $graduated = 0;
+    $ins = db()->prepare('INSERT IGNORE INTO mo_classes (name, grade_level, letter, year_id, program_id)
+                          VALUES (?,?,?,?,?)');
+    foreach ($src as $c) {
+        $g = (int)$c['grade_level'] + 1;
+        if ($g > 12) { $graduated++; continue; }        // дванадесетите завършват
+        $ins->execute([$g . $c['letter'], $g, $c['letter'], $toYear, $c['program_id']]);
+        $made += $ins->rowCount() > 0 ? 1 : 0;
+    }
+    return [$made, $graduated];
+}
+
+/** Папката, в която се пазят изготвените документи. */
+function docs_dir(): string
+{
+    $d = rtrim(UPLOAD_DIR, '/\\') . '/dokumenti';
+    if (!is_dir($d)) @mkdir($d, 0777, true);
+    return $d;
 }
 
 function fmt_avg($v): string { return $v === null ? '–' : number_format((float)$v, 2, ',', ' '); }

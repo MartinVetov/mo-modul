@@ -16,6 +16,7 @@
   --bg:#ffffff;
   --panel:#ffffff;
   --ok:#15803d;
+  --yellow:#c98a00;
   --red:#c62828;
   --amber:#b45309;
   --radius:8px;
@@ -143,8 +144,12 @@ input:disabled, textarea:disabled, select:disabled{background:#f1f5f9; color:var
 .comps .chead{display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;
               background:#f5f8fc; padding:.5rem .7rem; border-bottom:1px solid var(--line); font-size:.85rem}
 .comps .chead .cnt{margin-left:auto; color:var(--ink-soft)}
-.comp{display:flex; gap:.7rem; align-items:flex-start; padding:.5rem .7rem; border-bottom:1px solid #eef1f6; cursor:pointer}
-.comp:last-child{border-bottom:0}
+.clist{display:grid; grid-template-columns:1fr 1fr}
+.comp{display:flex; gap:.7rem; align-items:flex-start; padding:.55rem .7rem;
+      border-bottom:1px solid #eef1f6; cursor:pointer}
+/* разделителна линия между двете колони */
+.clist .comp:nth-child(odd){border-right:1px solid #eef1f6}
+.clist .comp:last-child, .clist .comp:nth-last-child(2):nth-child(odd){border-bottom:0}
 .comp:hover{background:#f8fafd}
 .comp .box{
   flex:0 0 auto; width:22px; height:22px; border:2px solid #b6c2d4; border-radius:5px;
@@ -157,12 +162,16 @@ input:disabled, textarea:disabled, select:disabled{background:#f1f5f9; color:var
 .comp .tag{font-size:.72rem; padding:.05rem .4rem; border-radius:99px; background:#fdf1dc; color:var(--amber)}
 .comp[data-state="mastered"] .box{background:var(--ok); border-color:var(--ok); color:#fff}
 .comp[data-state="mastered"] .box::after{content:"✓"}
+.comp[data-state="partial"] .box{background:var(--yellow); border-color:var(--yellow); color:#fff}
+.comp[data-state="partial"] .box::after{content:"✓"}
+.comp[data-state="partial"]{background:#fffbf0}
 .comp[data-state="not_mastered"] .box{background:var(--red); border-color:var(--red); color:#fff}
 .comp[data-state="not_mastered"] .box::after{content:"✕"}
 .comp[data-state="not_mastered"]{background:#fdf4f4}
+.comp .tag.spec{background:#e8f0fb; color:var(--blue-deep)}
 .legend{display:flex; gap:1rem; flex-wrap:wrap; font-size:.82rem; color:var(--ink-soft); margin:.5rem 0}
 .legend i{display:inline-block; width:14px; height:14px; border-radius:4px; vertical-align:-2px; margin-right:.3rem}
-.legend .g{background:var(--ok)} .legend .r{background:var(--red)} .legend .n{background:#fff; border:2px solid #b6c2d4}
+.legend .g{background:var(--ok)} .legend .y{background:var(--yellow)} .legend .r{background:var(--red)} .legend .n{background:#fff; border:2px solid #b6c2d4}
 
 /* ---------- таблици ---------- */
 table.grid{width:100%; border-collapse:collapse; font-size:.92rem; background:#fff}
@@ -215,3 +224,105 @@ body.plain{background:#f2f5fa}
   .panel, .rowcard{border:0; box-shadow:none; padding:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+
+/* ---------- задължителни полета и количествен анализ ---------- */
+.req{display:inline-block; font-size:.7rem; text-transform:uppercase; letter-spacing:.03em;
+     background:#fdeaea; color:var(--red); padding:.05rem .4rem; border-radius:99px; margin-left:.3rem}
+fieldset.quant{border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; margin:.9rem 0}
+fieldset.quant legend{font-size:.85rem; color:var(--ink-soft); padding:0 .4rem}
+.calcline{margin:.6rem 0 0; color:var(--ink-soft)}
+.calcline b{color:var(--ink)}
+.rowcard.bad-count{border-color:#e9b8b8; background:#fffbfb}
+.rowcard.bad-count fieldset.quant{border-color:#e9b8b8}
+
+/* ---------- документи на методиста ---------- */
+.doc-list .doc{display:flex; gap:.8rem; align-items:center; padding:.6rem .2rem; border-bottom:1px solid var(--line)}
+.doc-list .doc:last-child{border-bottom:0}
+.doc .ic{width:38px; height:38px; border-radius:8px; background:#eef3fb; color:var(--blue-deep);
+         display:grid; place-items:center; font-weight:700; font-size:.75rem}
+.doc .meta{flex:1; min-width:0}
+.doc .meta strong{display:block}
+.doc .meta small{color:var(--ink-soft)}
+.doc .acts{display:flex; gap:.4rem; flex-wrap:wrap}
+
+/* ---------- преглед на документ (A4) ---------- */
+.a4{background:#fff; max-width:21cm; margin:0 auto; padding:2cm 2.2cm;
+    font-family:"Times New Roman", Georgia, serif; font-size:12pt; line-height:1.5;
+    text-align:justify; box-shadow:0 2px 12px rgba(16,42,80,.12)}
+.a4 h1, .a4 h2{font-family:"Times New Roman", Georgia, serif; text-align:center;
+               font-size:16pt; font-weight:700; color:#000; margin:1.2em 0 .6em}
+.a4 h1{margin-top:0}
+.a4 .center{text-align:center}
+.a4 table{width:100%; border-collapse:collapse; font-size:11pt; margin:.8em 0}
+.a4 th, .a4 td{border:1px solid #666; padding:.3em .5em}
+.a4 th{text-align:center; font-weight:700}
+@media print{
+  .a4{box-shadow:none; padding:0; max-width:none}
+  @page{size:A4; margin:2cm}
+}
+
+
+/* ---------- избор на няколко професии при импорт ---------- */
+.picker-group{border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; margin:.8rem 0}
+.picker-group legend{font-size:.85rem; color:var(--ink-soft); padding:0 .4rem}
+.all-toggle{padding:.35rem .2rem; border-bottom:1px dashed var(--line); margin-bottom:.5rem}
+.prog-pick{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1rem}
+.prog-pick.disabled{opacity:.45}
+.prog-col .prog-head{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+  font-size:.82rem; font-weight:600; color:var(--blue-deep); margin-bottom:.35rem}
+.prog-col .prog-head .muted{font-weight:400}
+.prog-col .chk{margin:.15rem 0; padding:.2rem .3rem; border-radius:6px; font-size:.9rem; color:var(--ink)}
+.prog-col .chk:hover{background:#f2f6fc}
+.prog-col .chk input{margin-top:.15rem}
+#pickCount{margin:.6rem 0 0}
+
+
+/* ---------- количествен анализ: оценки с цветовете от дневника ---------- */
+fieldset.quant{background:#f7f9fc}
+.grades{gap:.55rem}
+.grades label{position:relative; margin:0; font-size:.78rem; font-weight:600;
+  text-align:center; color:#fff; border-radius:10px; padding:.4rem .3rem .45rem;
+  box-shadow:0 1px 2px rgba(16,42,80,.12)}
+.grades label input{margin-top:.3rem; text-align:center; font-weight:700; font-size:1.05rem;
+  border:0; border-radius:7px; padding:.35rem .2rem; background:rgba(255,255,255,.94); color:var(--ink)}
+.grades label input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+.grades label .g-num{display:block; font-size:1.35rem; line-height:1; margin-bottom:.1rem; opacity:.9}
+/* редът в разметката: Ученици, 2, 3, 4, 5, 6 */
+.grades label:nth-child(1){background:#5b6d85}
+.grades label:nth-child(2){background:#e53935}
+.grades label:nth-child(3){background:#fb8c00}
+.grades label:nth-child(4){background:#fdd835; color:#5a4a00}
+.grades label:nth-child(4) input{color:#5a4a00}
+.grades label:nth-child(5){background:#7cb342}
+.grades label:nth-child(6){background:#2e7d32}
+.calcline{background:#fff; border:1px solid var(--line); border-radius:8px; padding:.45rem .7rem}
+.rowcard.bad-count .calcline{border-color:#e9b8b8; background:#fff6f6}
+
+/* ---------- диалогов прозорец вместо „localhost says“ ---------- */
+body.mo-modal-open{overflow:hidden}
+.mo-modal-back{position:fixed; inset:0; z-index:80; background:rgba(15,30,60,.45);
+  display:grid; place-items:center; padding:1rem; animation:moFade .12s ease-out}
+.mo-modal{width:min(460px,100%); background:#fff; border-radius:12px; overflow:hidden;
+  box-shadow:0 18px 50px rgba(10,25,55,.3); animation:moPop .14s ease-out}
+.mo-modal-head{display:flex; align-items:center; gap:.7rem; padding:.9rem 1.1rem;
+  background:linear-gradient(180deg,#3d74bf,#1c4a8f); color:#fff}
+.mo-modal-head.danger{background:linear-gradient(180deg,#d9534f,#a72622)}
+.mo-modal-head .ic{display:grid; place-items:center; width:30px; height:30px; flex:0 0 30px;
+  border-radius:50%; background:rgba(255,255,255,.22); font-weight:700}
+.mo-modal-head h2{margin:0; font-size:1.02rem; color:#fff}
+.mo-modal-body{padding:1rem 1.1rem; color:var(--ink); font-size:.95rem}
+.mo-modal-body p{margin:0}
+.mo-modal-body .list{margin:.6rem 0 0; padding-left:1.1rem; color:var(--red); font-size:.9rem}
+.mo-modal-body .list li{margin:.15rem 0}
+.mo-modal-foot{display:flex; justify-content:flex-end; gap:.5rem;
+  padding:.75rem 1.1rem; background:#f5f8fc; border-top:1px solid var(--line)}
+.btn.danger-btn{background:linear-gradient(180deg,#d9534f,#a72622); color:#fff; border-color:#a72622}
+.btn.danger-btn:hover{background:linear-gradient(180deg,#e05f5b,#8e1f1c)}
+@keyframes moFade{from{opacity:0}to{opacity:1}}
+@keyframes moPop{from{transform:translateY(8px); opacity:0}to{transform:none; opacity:1}}
+
+@media (max-width:720px){
+  .clist{grid-template-columns:1fr}
+  .clist .comp:nth-child(odd){border-right:0}
+}
