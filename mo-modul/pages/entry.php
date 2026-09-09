@@ -42,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $grades   = $num('g2') + $num('g3') + $num('g4') + $num('g5') + $num('g6');
     $measures = trim((string)($_POST['measures'] ?? ''));
 
-    $depId = ($subjId && $classId) ? department_of_subject_for_class($subjId, $classId) : null;
-    if ($subjId && $classId && !$depId) {
-        $errors[] = 'Този предмет не е зададен за професията/специалността на избраната паралелка или няма определено методическо обединение.';
+    $depId = $subjId ? department_of_subject($subjId) : null;
+    if ($send && !$depId) {
+        $errors[] = 'Предметът не е зачислен към методическо обединение. Обърнете се към администрацията.';
     }
     if ($send) {
         if ($students < 1) $errors[] = 'Въведете броя ученици.';
@@ -138,53 +138,18 @@ $classes = all('SELECT c.*, p.name AS program_name FROM mo_classes c
                 LEFT JOIN mo_programs p ON p.id = c.program_id
                 WHERE c.is_active = 1 AND c.year_id = ?
                 ORDER BY c.grade_level, c.letter', [$yid]);
-$departments = all('SELECT id, name FROM mo_departments WHERE is_active = 1 ORDER BY name');
-$subjects = all('SELECT s.id, s.name
-                 FROM mo_subjects s
+$subjects = all('SELECT s.*, d.name AS department_name FROM mo_subjects s
+                 LEFT JOIN mo_departments d ON d.id = s.department_id
                  WHERE s.is_active = 1 ORDER BY s.name');
-
-/* Карта предмет -> общо МО / МО по конкретна професия или специалност.
-   Ползва се от JavaScript, за да показва само валидните предмети за класа. */
-$assignmentRows = all('SELECT subject_id, program_id, department_id
-                       FROM mo_subject_program_departments
-                       WHERE is_active = 1');
-$subjectAssignments = [];
-foreach ($assignmentRows as $a) {
-    $sid = (string)(int)$a['subject_id'];
-    if (!isset($subjectAssignments[$sid])) $subjectAssignments[$sid] = ['default' => null, 'programs' => []];
-    if ($a['program_id'] === null) {
-        $subjectAssignments[$sid]['default'] = (int)$a['department_id'];
-    } else {
-        $subjectAssignments[$sid]['programs'][(string)(int)$a['program_id']] = (int)$a['department_id'];
-    }
-}
-
-/* Паралелките се водят по учебна година. Ако за избраната година няма
-   нито една, менюто щеше да е празно без обяснение – затова казваме къде има. */
-$yearLabel  = one('SELECT label FROM mo_years WHERE id = ?', [$yid])['label'] ?? '';
-$otherYears = !$classes ? all('SELECT y.label, y.id, COUNT(c.id) n
-                               FROM mo_years y JOIN mo_classes c ON c.year_id = y.id AND c.is_active = 1
-                               GROUP BY y.id, y.label HAVING n > 0 ORDER BY y.label DESC') : [];
 
 $curSubject = (int)($entry['subject_id'] ?? $copySource['subject_id'] ?? 0);
 $curClass   = (int)($entry['class_id'] ?? 0);
 $curGroup   = (string)($entry['group_no'] ?? $copySource['group_no'] ?? '0');
 $locked     = $entry && $entry['status'] === 'sent';
 
-/* МО е филтър, но се определя от предмет + професия/специалност на класа.
-   При редакция пазим МО-то, записано в анализа. */
-$curDepartment = '';
-if ($entry && $entry['department_id'] !== null) {
-    $curDepartment = (string)(int)$entry['department_id'];
-} elseif ($curSubject && $curClass) {
-    $resolved = department_of_subject_for_class($curSubject, $curClass);
-    if ($resolved) $curDepartment = (string)$resolved;
-}
-
 header_html($entry ? 'Редакция на анализ' : 'Нов анализ', 'entry');
 section_title($entry ? 'Редакция на анализ' : 'Нов анализ',
     '<a class="btn small ghost" href="' . base_url('pages/my_entries.php?term=' . $term) . '">Към моите анализи</a>');
-if (!$entry) year_picker($term);
 ?>
 
 <?php if ($locked): ?>
@@ -196,59 +161,29 @@ if (!$entry) year_picker($term);
      пренесени. Изберете новата паралелка и попълнете броя оценки.</div>
 <?php endif; ?>
 
-<?php if (!$classes): ?>
-  <div class="flash err">
-    За учебна година <strong><?= e($yearLabel) ?></strong> няма въведени паралелки, затова
-    менюто е празно.
-    <?php if ($otherYears): ?>
-      Паралелки има за:
-      <?php foreach ($otherYears as $oy): ?>
-        <a href="<?= base_url('pages/entry.php?term=' . $term . '&year=' . (int)$oy['id']) ?>">
-          <?= e($oy['label']) ?></a> (<?= (int)$oy['n'] ?>)<?= $oy === end($otherYears) ? '' : ',' ?>
-      <?php endforeach; ?>.
-      Изберете годината горе или помолете администрацията да прехвърли паралелките.
-    <?php else: ?>
-      Администрацията ги добавя от „Години и паралелки“.
-    <?php endif; ?>
-  </div>
-<?php endif; ?>
-
-<div id="entryAjaxStatus" class="flash" style="display:none" aria-live="polite"></div>
-<form method="post" id="entryForm" data-ajax-entry="1">
+<form method="post" id="entryForm">
   <?= csrf_field() ?>
   <input type="hidden" name="term" value="<?= e($term) ?>">
   <input type="hidden" name="entry_id" value="<?= (int)($entry['id'] ?? 0) ?>">
 
   <section class="rowcard" data-row="0">
-    <div class="fields">
+    <div class="fields three">
+      <label>Предмет
+        <select name="subject_id" class="f-subject" required <?= $locked ? 'disabled' : '' ?>>
+          <option value="">-- Избери предмет --</option>
+          <?php foreach ($subjects as $s): ?>
+            <option value="<?= (int)$s['id'] ?>" <?= $curSubject === (int)$s['id'] ? 'selected' : '' ?>>
+              <?= e($s['name']) ?><?= $s['department_name'] ? ' · ' . e($s['department_name']) : ' · без МО' ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </label>
       <label>Паралелка
         <select name="class_id" class="f-class" required <?= $locked ? 'disabled' : '' ?>>
           <option value="">-- Клас --</option>
           <?php foreach ($classes as $c): ?>
-            <option value="<?= (int)$c['id'] ?>"
-                    data-program="<?= $c['program_id'] !== null ? (int)$c['program_id'] : '' ?>"
-                    <?= $curClass === (int)$c['id'] ? 'selected' : '' ?>>
+            <option value="<?= (int)$c['id'] ?>" <?= $curClass === (int)$c['id'] ? 'selected' : '' ?>>
               <?= e($c['name']) ?><?= $c['program_name'] ? ' · ' . e($c['program_name']) : '' ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-      <label>Методическо обединение
-        <select class="f-department" <?= $locked ? 'disabled' : '' ?>>
-          <option value="" <?= $curDepartment === '' ? 'selected' : '' ?>>-- Всички МО --</option>
-          <?php foreach ($departments as $d): ?>
-            <option value="<?= (int)$d['id'] ?>" <?= $curDepartment === (string)(int)$d['id'] ? 'selected' : '' ?>>
-              <?= e($d['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-      <label>Предмет
-        <select name="subject_id" class="f-subject" data-locked="<?= $locked ? '1' : '0' ?>" required <?= $locked ? 'disabled' : '' ?>>
-          <option value="">-- Първо избери паралелка --</option>
-          <?php foreach ($subjects as $s): ?>
-            <option value="<?= (int)$s['id'] ?>" <?= $curSubject === (int)$s['id'] ? 'selected' : '' ?>>
-              <?= e($s['name']) ?>
-            </option>
           <?php endforeach; ?>
         </select>
       </label>
@@ -310,7 +245,7 @@ if (!$entry) year_picker($term);
   <div class="actions">
     <button class="btn" name="action" value="draft" type="submit">Запази чернова</button>
     <button class="btn primary" name="action" value="send" type="submit"
-            data-confirm="Анализът ще бъде изпратен към методическото обединение, определено за този предмет и професия/специалност на паралелката, и се заключва. За промяна ще трябва да го върнете от „Моите анализи“."
+            data-confirm="Анализът ще бъде изпратен към методическото обединение на предмета и се заключва. За промяна ще трябва да го върнете от „Моите анализи“."
             data-confirm-title="Изпращане на анализа" data-confirm-ok="Изпрати">Изпрати към МО</button>
   </div>
   <?php endif; ?>
@@ -319,9 +254,7 @@ if (!$entry) year_picker($term);
 <script>
   window.MO = window.MO || {};
   window.MO.apiComps = <?= json_encode(base_url('api/competencies.php'), JSON_UNESCAPED_SLASHES) ?>;
-  window.MO.myEntries = <?= json_encode(base_url('pages/my_entries.php?term=' . $term), JSON_UNESCAPED_SLASHES) ?>;
   window.MO.term = <?= json_encode($term) ?>;
   window.MO.preset = <?= json_encode((object)$copyMarks, JSON_UNESCAPED_UNICODE) ?>;
-  window.MO.subjectAssignments = <?= json_encode((object)$subjectAssignments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <?php footer_html(); ?>

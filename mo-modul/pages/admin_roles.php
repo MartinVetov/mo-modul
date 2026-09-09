@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $search = trim((string)($_GET['q'] ?? ''));
-$params = [];
+$params = [':y' => $yid];
 $whereSearch = '';
 if ($search !== '') {
     // всеки placeholder се ползва само веднъж – MySQL не приема повторени имена
@@ -40,7 +40,7 @@ if ($search !== '') {
 
 $users = all(
     'SELECT u.id, ' . user_name_sql('u') . ' AS name, u.email, u.role AS vis_role,
-            (SELECT GROUP_CONCAT(r.role) FROM mo_user_roles r WHERE r.user_id = u.id) AS mroles
+            (SELECT GROUP_CONCAT(r.role) FROM mo_user_roles r WHERE r.user_id = u.id) AS mroles,
      FROM users u
      WHERE 1 = 1' . $whereSearch . '
      ORDER BY name LIMIT 300', $params);
@@ -62,11 +62,11 @@ section_title('Роли в модула и разпределение по ме�
      и не пипа паролите. Тук само се добавят права в модула. Всеки без изрична роля е
      <strong>учител</strong>. Председателите и заместниците на методическите обединения се
      задават от <a href="<?= base_url('pages/admin_departments.php') ?>">Методически обединения</a>,
-     защото анализът върви по предмета и професията/специалността на паралелката, а не по човек.</p>
+     защото анализът върви по предмета, а не по човек.</p>
   <div class="cards">
     <div class="stat"><span class="k"><?= count($leaders) ?></span><span class="l">методически обединения</span></div>
     <div class="stat"><span class="k"><?= count($deputies) ?></span><span class="l">зам-директори</span></div>
-    <div class="stat"><span class="k"><?= (int)(one('SELECT COUNT(DISTINCT subject_id) n FROM mo_subject_program_departments WHERE is_active = 1')['n'] ?? 0) ?></span>
+    <div class="stat"><span class="k"><?= (int)(one('SELECT COUNT(*) n FROM mo_subjects WHERE department_id IS NOT NULL')['n'] ?? 0) ?></span>
       <span class="l">предмета с МО</span></div>
   </div>
 </div>

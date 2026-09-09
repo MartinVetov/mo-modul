@@ -93,17 +93,6 @@
     return show(o);
   };
 
-  /* Единен системен прозорец за грешки. Използва същия modal,
-     който се използва и при потвърждение на опасни действия. */
-  MO.error = function (opt) {
-    var o = typeof opt === 'string' ? { text: opt } : (opt || {});
-    o.cancel = false;
-    o.ok = o.ok || 'Разбрах';
-    o.title = o.title || 'Грешка';
-    o.danger = true;
-    return show(o);
-  };
-
   /* Форми и бутони с data-confirm минават през прозореца горе. */
   document.addEventListener('submit', function (ev) {
     // Ако друга проверка вече е спряла изпращането (например заради
@@ -188,54 +177,6 @@
     return String(s).replace(/[&<>"]/g, function (m) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m];
     });
-  }
-
-  /* ---------- предмети според паралелка -> професия/специалност -> МО ---------- */
-  function subjectDepartment(subjectId, programId) {
-    var all = window.MO.subjectAssignments || {};
-    var map = all[String(subjectId)];
-    if (!map) return '';
-
-    var programs = map.programs || {};
-    if (programId && Object.prototype.hasOwnProperty.call(programs, String(programId))) {
-      return String(programs[String(programId)]);
-    }
-    if (map.default !== null && map.default !== undefined && map.default !== '') {
-      return String(map.default);
-    }
-    return '';
-  }
-
-  function filterSubjects(card) {
-    var dep = card.querySelector('.f-department');
-    var subj = card.querySelector('.f-subject');
-    var cls = card.querySelector('.f-class');
-    if (!dep || !subj || !cls) return false;
-    if (subj.getAttribute('data-locked') === '1') return false;
-
-    var before = subj.value;
-    var selectedClass = cls.options[cls.selectedIndex];
-    var programId = selectedClass ? (selectedClass.getAttribute('data-program') || '') : '';
-    var hasClass = !!cls.value;
-    var wantedDepartment = dep.value;
-
-    if (subj.options.length) {
-      subj.options[0].textContent = hasClass ? '-- Избери предмет --' : '-- Първо избери паралелка --';
-    }
-
-    Array.prototype.forEach.call(subj.options, function (opt) {
-      if (!opt.value) return;
-      var resolvedDepartment = hasClass ? subjectDepartment(opt.value, programId) : '';
-      var match = !!resolvedDepartment && (!wantedDepartment || resolvedDepartment === wantedDepartment);
-      opt.hidden = !match;
-      opt.disabled = !match;
-      opt.setAttribute('data-resolved-department', resolvedDepartment);
-    });
-
-    var selected = subj.options[subj.selectedIndex];
-    if (!hasClass || (selected && selected.disabled)) subj.value = '';
-    subj.disabled = !hasClass || subj.getAttribute('data-locked') === '1';
-    return before !== subj.value;
   }
 
   /* ---------- зареждане на компетентностите ---------- */
@@ -360,13 +301,7 @@
   form.addEventListener('change', function (ev) {
     var card = ev.target.closest('.rowcard');
     if (!card) return;
-
-    if (ev.target.matches('.f-class, .f-department')) {
-      filterSubjects(card);
-      loadComps(card);
-      return;
-    }
-    if (ev.target.matches('.f-subject, select[name*="[group_no]"]')) loadComps(card);
+    if (ev.target.matches('.f-subject, .f-class, select[name*="[group_no]"]')) loadComps(card);
   });
 
   form.addEventListener('input', function (ev) {
@@ -410,138 +345,39 @@
   });
 
 
-  /* ---------- изпращане без презареждане ---------- */
-  function entryStatus(type, text) {
-    var box = document.getElementById('entryAjaxStatus');
-    if (!box) return;
-    box.className = 'flash ' + (type || 'ok');
-    box.textContent = text || '';
-    box.style.display = text ? '' : 'none';
-  }
-
-  function responseFlash(html) {
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    var f = doc.querySelector('.flash.err, .flash.warn, .flash.ok, .flash');
-    if (!f) return null;
-    var type = f.classList.contains('err') ? 'err' : (f.classList.contains('warn') ? 'warn' : 'ok');
-    return { type: type, text: (f.textContent || '').trim() };
-  }
-
-  function setEntryBusy(busy) {
-    form.querySelectorAll('button[type="submit"]').forEach(function (b) {
-      b.disabled = !!busy;
-      b.classList.toggle('is-busy', !!busy);
-    });
-  }
-
-  function lockEntryAfterSend() {
-    form.querySelectorAll('input, select, textarea, button').forEach(function (el) {
-      if (el.type === 'hidden') return;
-      el.disabled = true;
-    });
-    var actions = form.querySelector('.actions');
-    if (actions) actions.innerHTML = '<a class="btn primary" href="' +
-      (window.MO.myEntries || 'my_entries.php') + '">Към моите анализи</a>';
-  }
-
+  /* ---------- проверка преди изпращане ---------- */
   form.addEventListener('submit', function (ev) {
-    var btn = ev.submitter;
-    var action = btn ? btn.value : 'draft';
-    var isSend = action === 'send';
+    if (!ev.submitter || ev.submitter.value !== 'send') return;
+    var problems = [];
+    Array.prototype.forEach.call(rowsBox.children, function (card, i) {
+      var no = i + 1;
+      var subj = card.querySelector('.f-subject').value;
+      var cls = card.querySelector('.f-class').value;
+      if (!subj || !cls) { problems.push('Ред ' + no + ': липсва предмет или паралелка.'); return; }
 
-    if (isSend) {
-      var problems = [];
-      Array.prototype.forEach.call(rowsBox.children, function (card, i) {
-        if (!card.classList || !card.classList.contains('rowcard')) return;
-        var no = i + 1;
-        var subjEl = card.querySelector('.f-subject');
-        var clsEl = card.querySelector('.f-class');
-        var subj = subjEl ? subjEl.value : '';
-        var cls = clsEl ? clsEl.value : '';
-        if (!subj || !cls) { problems.push('Липсва предмет или паралелка.'); return; }
-
-        var stEl = card.querySelector('.students');
-        var students = stEl ? (parseInt(stEl.value, 10) || 0) : 0;
-        var total = 0;
-        card.querySelectorAll('.gr').forEach(function (el) { total += parseInt(el.value, 10) || 0; });
-        if (!students) problems.push('Въведете броя ученици.');
-        else if (total !== students) problems.push('Оценките са ' + total + ', а учениците ' + students + '.');
-
-        var mEl = card.querySelector('textarea[name="measures"], textarea[name*="[measures]"]');
-        var m = mEl ? mEl.value.trim() : '';
-        if (m.length < 10) problems.push('Попълнете мерките за подобряване на качеството.');
-      });
-
-      if (problems.length) {
-        ev.preventDefault();
-        MO.error({ title: 'Анализът не може да се изпрати', list: problems });
-        return;
+      var students = parseInt(card.querySelector('.students').value, 10) || 0;
+      var total = 0;
+      card.querySelectorAll('.gr').forEach(function (el) { total += parseInt(el.value, 10) || 0; });
+      if (!students) problems.push('Ред ' + no + ': въведете броя ученици.');
+      else if (total !== students) {
+        problems.push('Ред ' + no + ': оценките са ' + total + ', а учениците ' + students + '.');
       }
-
-      // Първото submit-събитие оставяме на общия data-confirm обработчик.
-      // След потвърждение той извиква requestSubmit() втори път с moConfirmed=1.
-      var msg = btn && btn.getAttribute('data-confirm');
-      if (msg && form.dataset.moConfirmed !== '1') return;
-    }
-
-    ev.preventDefault();
-    entryStatus('', '');
-    setEntryBusy(true);
-
-    var data = new FormData(form);
-    if (btn && btn.name) data.set(btn.name, btn.value);
-
-    fetch(form.action || window.location.href, {
-      method: 'POST',
-      body: data,
-      credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    }).then(function (r) {
-      return r.text().then(function (html) { return { response: r, html: html }; });
-    }).then(function (res) {
-      var flash = responseFlash(res.html);
-      var finalUrl = res.response.url || '';
-
-      if (isSend && /\/pages\/my_entries\.php(?:\?|$)/.test(finalUrl)) {
-        dirty = false;
-        entryStatus('ok', flash && flash.text ? flash.text : 'Анализът е изпратен успешно.');
-        lockEntryAfterSend();
-        return;
-      }
-
-      if (/\/pages\/entry\.php(?:\?|$)/.test(finalUrl)) {
-        var u;
-        try { u = new URL(finalUrl, window.location.href); } catch (_) { u = null; }
-        var id = u ? u.searchParams.get('id') : null;
-
-        if (id && !isSend) {
-          var hidden = form.querySelector('input[name="entry_id"]');
-          if (hidden) hidden.value = id;
-          history.replaceState({}, '', finalUrl);
-          dirty = false;
-          entryStatus('ok', flash && flash.text ? flash.text : 'Черновата е записана.');
-          return;
-        }
-
-        // При грешка сървърът връща отново entry.php. Не заменяме DOM-а,
-        // затова всички поставени компетенции и въведени стойности остават.
-        var errorText = flash && flash.text ? flash.text : 'Записът не беше извършен. Проверете данните.';
-        if (flash && flash.type === 'ok') entryStatus('ok', errorText);
-        else MO.error(errorText);
-        return;
-      }
-
-      MO.error(flash && flash.text ? flash.text : 'Получен е неочакван отговор от сървъра.');
-    }).catch(function () {
-      MO.error('Възникна мрежова грешка. Данните във формата са запазени на екрана; опитайте отново.');
-    }).finally(function () {
-      setEntryBusy(false);
+      var mEl = card.querySelector('textarea[name="measures"], textarea[name*="[measures]"]');
+      var m = mEl ? mEl.value.trim() : '';
+      if (m.length < 10) problems.push('Ред ' + no + ': попълнете мерките за подобряване на качеството.');
     });
+    if (problems.length) {
+      ev.preventDefault();
+      MO.alert({
+        title: 'Анализът не може да се изпрати',
+        text: 'Поправете следното и опитайте отново:',
+        list: problems
+      });
+    }
   });
 
   /* ---------- първоначално зареждане ---------- */
   Array.prototype.forEach.call(rowsBox.children, function (card) {
-    filterSubjects(card);
     loadComps(card);
     recalc(card);
   });
@@ -550,118 +386,8 @@
   var dirty = false;
   form.addEventListener('input', function () { dirty = true; });
   form.addEventListener('click', function (ev) { if (ev.target.closest('.comp')) dirty = true; });
+  form.addEventListener('submit', function () { dirty = false; });
   window.addEventListener('beforeunload', function (ev) {
     if (dirty) { ev.preventDefault(); ev.returnValue = ''; }
-  });
-})();
-
-
-/* ============================================================
-   Администрация на МО без презареждане на страницата.
-   POST формите се изпращат с fetch(), след което се подменя само
-   засегнатият панел. Скролът остава на същото място.
-   ============================================================ */
-(function () {
-  'use strict';
-
-  var depPanel = document.getElementById('departmentsPanel');
-  var subjPanel = document.getElementById('subjectsPanel');
-  if (!depPanel && !subjPanel) return;
-
-  function findFlash(doc) {
-    var f = doc.querySelector('.flash.err, .flash.warn, .flash.ok, .flash');
-    if (!f) return null;
-    return {
-      type: f.classList.contains('err') ? 'err' : (f.classList.contains('warn') ? 'warn' : 'ok'),
-      text: (f.textContent || '').trim()
-    };
-  }
-
-  function toast(type, text) {
-    var old = document.getElementById('adminAjaxToast');
-    if (old) old.remove();
-    if (!text) return;
-    var box = document.createElement('div');
-    box.id = 'adminAjaxToast';
-    box.className = 'flash ' + (type || 'ok');
-    box.setAttribute('aria-live', 'polite');
-    box.style.position = 'fixed';
-    box.style.right = '1rem';
-    box.style.bottom = '1rem';
-    box.style.zIndex = '9999';
-    box.style.maxWidth = '520px';
-    box.textContent = text;
-    document.body.appendChild(box);
-    setTimeout(function () { if (box.parentNode) box.remove(); }, 3500);
-  }
-
-  function refreshPanel(section, html, oldY) {
-    var doc = new DOMParser().parseFromString(html, 'text/html');
-    var id = section === 'departments' ? 'departmentsPanel' : 'subjectsPanel';
-    var incoming = doc.getElementById(id);
-    var current = document.getElementById(id);
-    if (incoming && current) current.replaceWith(incoming);
-    requestAnimationFrame(function () { window.scrollTo(window.scrollX, oldY); });
-    return findFlash(doc);
-  }
-
-  function ajaxSubmit(form, submitter) {
-    if (form.dataset.ajaxBusy === '1') return;
-    form.dataset.ajaxBusy = '1';
-    var oldY = window.scrollY;
-    var section = form.getAttribute('data-refresh') ||
-                  (form.closest('#departmentsPanel') ? 'departments' : 'subjects');
-    var state = form.querySelector('.ajax-save-state');
-    if (state) state.textContent = 'Записване…';
-
-    var data = new FormData(form);
-    if (submitter && submitter.name) data.set(submitter.name, submitter.value);
-
-    fetch(form.action || window.location.href, {
-      method: 'POST',
-      body: data,
-      credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    }).then(function (r) { return r.text(); })
-      .then(function (html) {
-        var flash = refreshPanel(section, html, oldY);
-        if (flash && (flash.type === 'err' || flash.type === 'warn')) {
-          MO.error({
-            title: flash.type === 'warn' ? 'Внимание' : 'Грешка',
-            text: flash.text
-          });
-        } else {
-          toast('ok', flash && flash.text ? flash.text : 'Промяната е записана.');
-        }
-      })
-      .catch(function () {
-        MO.error('Промяната не беше записана. Опитайте отново.');
-        if (state) state.textContent = 'Грешка';
-      })
-      .finally(function () { delete form.dataset.ajaxBusy; });
-  }
-
-  document.addEventListener('submit', function (ev) {
-    var form = ev.target.closest('form[data-ajax-admin]');
-    if (!form) return;
-
-    var btn = ev.submitter;
-    var msg = (btn && btn.getAttribute('data-confirm')) || form.getAttribute('data-confirm');
-    if (msg && form.dataset.moConfirmed !== '1') {
-      // Оставяме общия confirm handler да покаже диалога.
-      return;
-    }
-
-    ev.preventDefault();
-    ajaxSubmit(form, btn);
-  });
-
-  document.addEventListener('change', function (ev) {
-    var select = ev.target.closest('select[data-autosave]');
-    if (!select) return;
-    var form = select.closest('form[data-ajax-admin]');
-    if (!form || !select.value) return;
-    if (typeof form.requestSubmit === 'function') form.requestSubmit();
-    else ajaxSubmit(form, null);
   });
 })();

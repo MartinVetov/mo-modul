@@ -195,25 +195,6 @@ function current_year_id(): int
     return $y ? (int)$y['id'] : 0;
 }
 
-/* Видове програми: новите професии и старите специалности. */
-const PROGRAM_KINDS = ['profession' => 'професия', 'specialty' => 'специалност'];
-
-/** Списък с професии и специалности за падащите менюта. */
-function programs(?string $kind = null, bool $onlyActive = true): array
-{
-    $sql = 'SELECT * FROM mo_programs WHERE 1=1';
-    $p = [];
-    if ($kind !== null) { $sql .= ' AND kind = ?'; $p[] = $kind; }
-    if ($onlyActive)    { $sql .= ' AND is_active = 1'; }
-    return all($sql . ' ORDER BY kind DESC, name', $p);
-}
-
-function program_label(?array $prog): string
-{
-    if (!$prog) return '—';
-    return $prog['name'] . ' (' . (PROGRAM_KINDS[$prog['kind']] ?? $prog['kind']) . ')';
-}
-
 /**
  * Разрешава името на предмет от файл към предмет в системата и подраздел.
  * Пример: „Литература“ → [„Български език и литература“, „Литература“].
@@ -234,45 +215,21 @@ const BEL_SUBJECT  = 'Български език и литература';
 const BEL_SECTIONS = ['Български език', 'Литература'];
 
 /**
- * Уеднаквява всички използвани варианти за учебна практика към „УП - …“.
- * Приема напр.:
- *   „УП Програмиране“, „УП: Програмиране“, „УП-Програмиране“,
- *   „УП – Програмиране“, „Учебна практика: Програмиране“,
- *   „Учебна практика - Програмиране“, „Учебна практика Програмиране“.
- */
-function normalize_practice_subject(string $name): string
-{
-    $name = preg_replace('/\s+/u', ' ', trim($name)) ?? trim($name);
-
-    if (preg_match('/^(?:Учебна\s+практика|УП)(?=\s|[-–—:.]|$)\s*(?:[-–—:.]\s*)?(.+)$/ui', $name, $m)) {
-        $rest = trim($m[1]);
-        $rest = preg_replace('/^[\s\-–—:.]+/u', '', $rest) ?? $rest;
-        $rest = preg_replace('/\s+/u', ' ', trim($rest)) ?? trim($rest);
-        if ($rest !== '') return 'УП - ' . $rest;
-    }
-
-    return $name;
-}
-
-/**
  * Привежда името на предмета от файла към предмет + подраздел.
- * Първо се търси в таблицата със съответствия, после се уеднаквява
- * учебната практика и накрая се прилагат вградените правила за БЕЛ.
+ * Първо се търси в таблицата със съответствия, после вградените правила.
  *
  * @return array{0:string,1:?string}
  */
 function normalize_subject(string $name): array
 {
-    $raw = trim($name);
-    [$subject, $section] = resolve_subject($raw);
-    $subject = normalize_practice_subject($subject);
-    if ($section !== null || $subject !== $raw) return [$subject, $section];
+    [$subject, $section] = resolve_subject($name);
+    if ($section !== null || $subject !== trim($name)) return [$subject, $section];
 
-    $n = preg_replace('/\s+/u', ' ', mb_strtolower($raw)) ?? '';
+    $n = preg_replace('/\s+/u', ' ', mb_strtolower(trim($name))) ?? '';
     if (in_array($n, ['литература', 'лит.'], true))                     return [BEL_SUBJECT, 'Литература'];
     if (in_array($n, ['български език', 'бълг. език'], true))           return [BEL_SUBJECT, 'Български език'];
     if (in_array($n, ['бел', 'б.е.л.', 'български език и литература'], true)) return [BEL_SUBJECT, null];
-    return [normalize_practice_subject($raw), null];
+    return [trim($name), null];
 }
 
 /** Подрежда подразделите: първо езикът, после литературата. */
@@ -318,57 +275,15 @@ function docs_dir(): string
 
 /* --------------------------------------------------------------------
  * Методически обединения.
- * Един предмет може да е в различно МО според професията/специалността
- * на паралелката. В mo_subject_program_departments program_id=NULL е
- * общо правило, а конкретното program_id го заменя за съответната програма.
+ * Предметът принадлежи на МО, а МО има председател и заместник.
+ * Затова смяната на председател не пипа нито предметите, нито анализите.
  * ------------------------------------------------------------------ */
 
-/**
- * Назначението на предмет към МО за конкретна професия/специалност.
- * Конкретната програма има приоритет пред общото правило (program_id IS NULL).
- */
-function subject_department_assignment(int $subjectId, ?int $programId): ?array
-{
-    if ($programId !== null) {
-        $r = one('SELECT a.id, a.subject_id, a.program_id, a.department_id, d.name AS department_name
-                  FROM mo_subject_program_departments a
-                  JOIN mo_departments d ON d.id = a.department_id
-                  WHERE a.subject_id = ? AND a.program_id = ? AND a.is_active = 1
-                  LIMIT 1', [$subjectId, $programId]);
-        if ($r) return $r;
-    }
-
-    return one('SELECT a.id, a.subject_id, a.program_id, a.department_id, d.name AS department_name
-                FROM mo_subject_program_departments a
-                JOIN mo_departments d ON d.id = a.department_id
-                WHERE a.subject_id = ? AND a.program_id IS NULL AND a.is_active = 1
-                LIMIT 1', [$subjectId]);
-}
-
-/** МО-то на предмета за конкретна професия/специалност. */
-function department_of_subject_for_program(int $subjectId, ?int $programId): ?int
-{
-    $a = subject_department_assignment($subjectId, $programId);
-    return $a ? (int)$a['department_id'] : null;
-}
-
-/** МО-то на предмета според професията/специалността на избраната паралелка. */
-function department_of_subject_for_class(int $subjectId, int $classId): ?int
-{
-    $c = one('SELECT program_id FROM mo_classes WHERE id = ?', [$classId]);
-    if (!$c) return null;
-    $programId = $c['program_id'] !== null ? (int)$c['program_id'] : null;
-    return department_of_subject_for_program($subjectId, $programId);
-}
-
-/**
- * Общото МО на предмета (ако има правило „всички професии/специалности“).
- * Оставено е за съвместимост с по-стар код; при анализ използвайте
- * department_of_subject_for_class().
- */
+/** МО-то, на което принадлежи предметът. */
 function department_of_subject(int $subjectId): ?int
 {
-    return department_of_subject_for_program($subjectId, null);
+    $r = one('SELECT department_id FROM mo_subjects WHERE id = ?', [$subjectId]);
+    return $r && $r['department_id'] !== null ? (int)$r['department_id'] : null;
 }
 
 /** МО-тата, в които потребителят е председател или заместник. */

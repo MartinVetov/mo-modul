@@ -5,12 +5,6 @@
    ===================================================================== */
 
 :root{
-  --font:'Nunito', 'Segoe UI', Roboto, Arial, sans-serif;
-
-  /* лентата отгоре прелива водоравно, точно както във ВИС */
-  --top-from:#22417c;
-  --top-to:#396cb7;
-
   --blue:#2b5faa;          /* лентата отгоре */
   --blue-dk:#1c4a8f;
   --blue-deep:#16407d;
@@ -26,20 +20,12 @@
   --red:#c62828;
   --amber:#b45309;
   --radius:8px;
-
-  /* оценки – цветовете от дневника */
-  --g2:#e7505a;
-  --g3:#f2784b;
-  --g4:#f7ca18;
-  --g5:#3598dc;
-  --g6:#26c281;
-  --g-students:#5b6d85;
 }
 
 *{box-sizing:border-box}
 body{
   margin:0; background:var(--bg); color:var(--ink);
-  font:15px/1.55 var(--font);
+  font:15px/1.55 "Segoe UI", Roboto, Arial, sans-serif;
 }
 a{color:var(--link); text-decoration:none}
 a:hover{text-decoration:underline}
@@ -49,8 +35,7 @@ a:hover{text-decoration:underline}
 .vis-top{
   position:sticky; top:0; z-index:30;
   display:flex; align-items:center; gap:1rem;
-  background:linear-gradient(90deg, var(--top-from) 0%, var(--top-to) 100%);
-  color:#fff; padding:.55rem 1rem;
+  background:var(--blue); color:#fff; padding:.55rem 1rem;
   box-shadow:0 2px 6px rgba(0,0,0,.15);
 }
 .vis-title{flex:1; text-align:center; font-size:1.15rem; font-weight:700}
@@ -305,13 +290,13 @@ fieldset.quant{background:#f7f9fc}
 .grades label input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 .grades label .g-num{display:block; font-size:1.35rem; line-height:1; margin-bottom:.1rem; opacity:.9}
 /* редът в разметката: Ученици, 2, 3, 4, 5, 6 */
-.grades label:nth-child(1){background:var(--g-students)}
-.grades label:nth-child(2){background:var(--g2)}
-.grades label:nth-child(3){background:var(--g3)}
-.grades label:nth-child(4){background:var(--g4); color:#7a5c00}
-.grades label:nth-child(4) input{color:#7a5c00}
-.grades label:nth-child(5){background:var(--g5)}
-.grades label:nth-child(6){background:var(--g6)}
+.grades label:nth-child(1){background:#5b6d85}
+.grades label:nth-child(2){background:#e53935}
+.grades label:nth-child(3){background:#fb8c00}
+.grades label:nth-child(4){background:#fdd835; color:#5a4a00}
+.grades label:nth-child(4) input{color:#5a4a00}
+.grades label:nth-child(5){background:#7cb342}
+.grades label:nth-child(6){background:#2e7d32}
 .calcline{background:#fff; border:1px solid var(--line); border-radius:8px; padding:.45rem .7rem}
 .rowcard.bad-count .calcline{border-color:#e9b8b8; background:#fff6f6}
 

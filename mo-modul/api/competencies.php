@@ -23,31 +23,12 @@ $class = one('SELECT c.*, p.name AS program_name, p.kind AS program_kind
               WHERE c.id = ?', [$classId]);
 if (!$class) json_out(['ok' => false, 'error' => 'Няма такава паралелка.'], 404);
 
-/* вече съществуващ анализ – пазим историята дори ако администраторът
-   по-късно промени правилото предмет + програма -> МО */
-$entry = one('SELECT id, status, department_id FROM mo_entries
+$comps = competencies_for($subjectId, $classId);
+
+/* вече запазени отметки за този ред */
+$entry = one('SELECT id, status FROM mo_entries
               WHERE user_id=? AND year_id=? AND term=? AND class_id=? AND subject_id=? AND group_no=?',
              [$u['id'], $yid, $term, $classId, $subjectId, $group]);
-
-$assignment = subject_department_assignment(
-    $subjectId,
-    $class['program_id'] !== null ? (int)$class['program_id'] : null
-);
-if (!$assignment && !$entry) {
-    json_out([
-        'ok' => false,
-        'error' => 'Предметът не е зададен за професията/специалността на тази паралелка.'
-    ], 422);
-}
-if (!$assignment && $entry && $entry['department_id'] !== null) {
-    $oldDep = one('SELECT name FROM mo_departments WHERE id = ?', [(int)$entry['department_id']]);
-    $assignment = [
-        'department_id' => (int)$entry['department_id'],
-        'department_name' => $oldDep['name'] ?? ''
-    ];
-}
-
-$comps = competencies_for($subjectId, $classId);
 $saved = [];
 if ($entry) {
     foreach (all('SELECT competency_id, state FROM mo_entry_competencies WHERE entry_id = ?', [$entry['id']]) as $r) {
@@ -77,8 +58,6 @@ json_out([
     'grade'     => (int)$class['grade_level'],
     'program' => $class['program_name'],
     'program_kind' => $class['program_kind'],
-    'department_id' => $assignment ? (int)$assignment['department_id'] : null,
-    'department' => $assignment['department_name'] ?? null,
     'locked'    => $entry && $entry['status'] === 'sent',
     'saved'     => $saved,
     'carried'   => $carried,

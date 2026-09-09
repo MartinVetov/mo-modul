@@ -134,8 +134,7 @@ function render(array $rows, array $users = []): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Проверка на инсталацията</title>
 <style>
- @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
- body{font:15px/1.5 'Nunito',"Segoe UI",Arial,sans-serif;background:#f2f5fa;color:#1f2937;margin:0;padding:1.5rem}
+ body{font:15px/1.5 "Segoe UI",Arial,sans-serif;background:#f2f5fa;color:#1f2937;margin:0;padding:1.5rem}
  .wrap{max-width:900px;margin:0 auto}
  h1{color:#2b5faa;font-size:1.4rem}
  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;
