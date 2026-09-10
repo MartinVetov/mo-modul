@@ -93,13 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         q('UPDATE mo_classes SET is_active = 1 - is_active WHERE id = ?', [(int)$_POST['id']]);
     }
 
-    /* ---------------- предмети ---------------- */
-    elseif ($act === 'subject_add') {
-        $n = trim((string)($_POST['name'] ?? ''));
-        if ($n !== '') { q('INSERT IGNORE INTO mo_subjects (name) VALUES (?)', [$n]); flash('Предметът е добавен.'); }
-    } elseif ($act === 'subject_toggle') {
-        q('UPDATE mo_subjects SET is_active = 1 - is_active WHERE id = ?', [(int)$_POST['id']]);
-    }
     redirect(base_url('pages/admin_setup.php'));
 }
 
@@ -120,8 +113,6 @@ $progs = all('SELECT p.*,
 $profs = array_values(array_filter($progs, static fn($p) => $p['kind'] === 'profession' && $p['is_active']));
 $specs = array_values(array_filter($progs, static fn($p) => $p['kind'] === 'specialty'  && $p['is_active']));
 
-$subjects = all('SELECT s.*, (SELECT COUNT(*) FROM mo_competencies k WHERE k.subject_id = s.id AND k.is_active=1) n
-                 FROM mo_subjects s ORDER BY s.name');
 
 /** Падащо меню: за 8 клас само професии, за останалите и двете. */
 function program_select(string $name, ?int $current, int $grade, array $profs, array $specs, string $style = ''): void
@@ -341,31 +332,9 @@ section_title('Учебни години, паралелки, професии �
 </div>
 
 <div class="panel">
-  <h2>Предмети</h2>
-  <form method="post" class="picker">
-    <?= csrf_field() ?>
-    <input type="hidden" name="action" value="subject_add">
-    <label>Нов предмет<input type="text" name="name" required size="26"></label>
-    <button class="btn primary" type="submit">Добави</button>
-  </form>
-  <table class="grid">
-    <thead><tr><th>Предмет</th><th>Компетентности</th><th>Статус</th><th></th></tr></thead>
-    <tbody>
-    <?php foreach ($subjects as $s): ?>
-      <tr class="<?= $s['is_active'] ? '' : 'off' ?>">
-        <td><?= e($s['name']) ?></td><td><?= (int)$s['n'] ?></td>
-        <td><?= $s['is_active'] ? 'активен' : 'скрит' ?></td>
-        <td>
-          <form method="post"><?= csrf_field() ?>
-            <input type="hidden" name="action" value="subject_toggle">
-            <input type="hidden" name="id" value="<?= (int)$s['id'] ?>">
-            <button class="btn small ghost" type="submit"><?= $s['is_active'] ? 'Скрий' : 'Върни' ?></button>
-          </form>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
+  <h2>Предмети и методически обединения</h2>
+  <p class="small">Добавянето и редакцията на предмети, обхватът на МО по професии/специалности и общообразователните маршрути са обединени в една страница.</p>
+  <a class="btn primary" href="<?= base_url('pages/admin_departments.php') ?>">Отвори „Методически обединения“</a>
 </div>
 
 <div class="panel">

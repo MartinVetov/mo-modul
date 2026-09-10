@@ -289,23 +289,270 @@ function class_program(int $classId): ?int
 }
 
 /**
- * Компетентностите за предмет + паралелка: тези за професията или
- * специалността на паралелката плюс общите (program_id IS NULL).
+ * Валиден ли е предметът за конкретната паралелка.
+ * За анализа приемаме, че предметът е приложим само ако има поне една
+ * активна компетентност за класа (съответния випуск) и за неговата
+ * професия/специалност или обща компетентност за всички програми.
+ */
+/**
+ * Изключение от автоматичната класификация.
+ * „Чужд език по професията“ се третира като общообразователен предмет,
+ * дори когато компетентностите му са въведени за конкретни програми.
+ */
+/** РПП предмет без предварително заредени компетентности. */
+function subject_is_rpp(int $subjectId): bool
+{
+    return (bool)one('SELECT subject_id FROM mo_rpp_subjects WHERE subject_id=? LIMIT 1', [$subjectId]);
+}
+
+/** Валиден ли е РПП предметът за конкретната паралелка. */
+function rpp_subject_available_for_class(int $subjectId, int $classId): bool
+{
+    $c = one('SELECT grade_level,program_id FROM mo_classes WHERE id=? AND is_active=1', [$classId]);
+    if (!$c || $c['program_id'] === null || !subject_is_rpp($subjectId)) return false;
+    return (bool)one(
+        'SELECT rs.subject_id
+         FROM mo_rpp_subjects rs
+         JOIN mo_subjects s ON s.id=rs.subject_id AND s.is_active=1
+         JOIN mo_rpp_subject_grades rg ON rg.subject_id=rs.subject_id AND rg.grade_level=?
+         JOIN mo_rpp_subject_programs rp ON rp.subject_id=rs.subject_id AND rp.program_id=?
+         WHERE rs.subject_id=? AND rs.is_active=1
+         LIMIT 1',
+        [(int)$c['grade_level'], (int)$c['program_id'], $subjectId]
+    );
+}
+
+function subject_is_general_exception(int $subjectId): bool
+{
+    $r = one('SELECT name FROM mo_subjects WHERE id=? AND is_active=1', [$subjectId]);
+    if (!$r) return false;
+    $name = preg_replace('/\\s+/u', ' ', trim((string)$r['name']));
+    return $name === 'Чужд език по професията';
+}
+
+/**
+ * Тип на предмета според активните компетентности.
+ * - professional: има поне една компетентност за конкретна програма;
+ * - general: има само общи компетентности (program_id IS NULL);
+ * - null: няма активни компетентности.
+ *
+ * Изключение: „Чужд език по професията“ винаги е general за целите на
+ * маршрутизирането, независимо от начина, по който са въведени компетентностите.
+ */
+function subject_training_type(int $subjectId): ?string
+{
+    if (subject_is_rpp($subjectId)) return 'professional';
+
+    if (subject_is_general_exception($subjectId)) {
+        $hasAny = (bool)one(
+            'SELECT id FROM mo_competencies WHERE subject_id=? AND is_active=1 LIMIT 1',
+            [$subjectId]
+        );
+        return $hasAny ? 'general' : null;
+    }
+
+    $specific = (bool)one(
+        'SELECT id FROM mo_competencies
+         WHERE subject_id=? AND is_active=1 AND program_id IS NOT NULL LIMIT 1',
+        [$subjectId]
+    );
+    if ($specific) return 'professional';
+
+    $general = (bool)one(
+        'SELECT id FROM mo_competencies
+         WHERE subject_id=? AND is_active=1 AND program_id IS NULL LIMIT 1',
+        [$subjectId]
+    );
+    return $general ? 'general' : null;
+}
+
+/** Валиден ли е предметът за конкретната паралелка според типа му. */
+function subject_available_for_class(int $subjectId, int $classId): bool
+{
+    $c = one('SELECT grade_level, program_id FROM mo_classes WHERE id = ? AND is_active = 1', [$classId]);
+    if (!$c) return false;
+
+    if (subject_is_rpp($subjectId)) return rpp_subject_available_for_class($subjectId, $classId);
+
+    $type = subject_training_type($subjectId);
+    if ($type === 'professional') {
+        if ($c['program_id'] === null) return false;
+        return (bool)one(
+            'SELECT k.id
+             FROM mo_competencies k
+             JOIN mo_subjects s ON s.id=k.subject_id AND s.is_active=1
+             WHERE k.subject_id=? AND k.grade_level=? AND k.program_id=? AND k.is_active=1
+             LIMIT 1',
+            [$subjectId, $c['grade_level'], $c['program_id']]
+        );
+    }
+
+    if ($type === 'general') {
+        if (subject_is_general_exception($subjectId)) {
+            // За „Чужд език по професията“ компетентностите могат да са
+            // програмно-специфични, но маршрутът остава общообразователен.
+            if ($c['program_id'] !== null) {
+                $specific = (bool)one(
+                    'SELECT k.id
+                     FROM mo_competencies k
+                     JOIN mo_subjects s ON s.id=k.subject_id AND s.is_active=1
+                     WHERE k.subject_id=? AND k.grade_level=? AND k.program_id=? AND k.is_active=1
+                     LIMIT 1',
+                    [$subjectId, $c['grade_level'], $c['program_id']]
+                );
+                if ($specific) return true;
+            }
+        }
+
+        return (bool)one(
+            'SELECT k.id
+             FROM mo_competencies k
+             JOIN mo_subjects s ON s.id=k.subject_id AND s.is_active=1
+             WHERE k.subject_id=? AND k.grade_level=? AND k.program_id IS NULL AND k.is_active=1
+             LIMIT 1',
+            [$subjectId, $c['grade_level']]
+        );
+    }
+    return false;
+}
+
+/**
+ * Компетентностите за предмет + паралелка.
+ * Маршрутът е според глобалния тип на предмета. При специалното изключение
+ * „Чужд език по професията“ първо се зареждат компетентностите за конкретната
+ * програма на класа, а ако няма такива – общите компетентности.
  */
 function competencies_for(int $subjectId, int $classId): array
 {
     $c = one('SELECT grade_level, program_id FROM mo_classes WHERE id = ?', [$classId]);
     if (!$c) return [];
-    return all(
-        'SELECT k.id, k.code, k.title, k.source, k.section, k.program_id,
-                pr.name AS program_name, pr.kind AS program_kind
-         FROM mo_competencies k
-         LEFT JOIN mo_programs pr ON pr.id = k.program_id
-         WHERE k.subject_id = ? AND k.grade_level = ? AND k.is_active = 1
-           AND (k.program_id IS NULL OR k.program_id <=> ?)
-         ORDER BY ' . section_order_sql('k') . ', k.sort_order, k.id',
-        [$subjectId, $c['grade_level'], $c['program_id']]
+
+    if (subject_is_rpp($subjectId)) return [];
+
+    $type = subject_training_type($subjectId);
+    if ($type === 'professional') {
+        if ($c['program_id'] === null) return [];
+        return all(
+            'SELECT k.id, k.code, k.title, k.source, k.section, k.program_id,
+                    pr.name AS program_name, pr.kind AS program_kind
+             FROM mo_competencies k
+             LEFT JOIN mo_programs pr ON pr.id=k.program_id
+             WHERE k.subject_id=? AND k.grade_level=? AND k.program_id=? AND k.is_active=1
+             ORDER BY ' . section_order_sql('k') . ', k.sort_order, k.id',
+            [$subjectId, $c['grade_level'], $c['program_id']]
+        );
+    }
+
+    if ($type === 'general') {
+        if (subject_is_general_exception($subjectId) && $c['program_id'] !== null) {
+            $specific = all(
+                'SELECT k.id, k.code, k.title, k.source, k.section, k.program_id,
+                        pr.name AS program_name, pr.kind AS program_kind
+                 FROM mo_competencies k
+                 LEFT JOIN mo_programs pr ON pr.id=k.program_id
+                 WHERE k.subject_id=? AND k.grade_level=? AND k.program_id=? AND k.is_active=1
+                 ORDER BY ' . section_order_sql('k') . ', k.sort_order, k.id',
+                [$subjectId, $c['grade_level'], $c['program_id']]
+            );
+            if ($specific) return $specific;
+        }
+
+        return all(
+            'SELECT k.id, k.code, k.title, k.source, k.section, k.program_id,
+                    pr.name AS program_name, pr.kind AS program_kind
+             FROM mo_competencies k
+             LEFT JOIN mo_programs pr ON pr.id=k.program_id
+             WHERE k.subject_id=? AND k.grade_level=? AND k.program_id IS NULL AND k.is_active=1
+             ORDER BY ' . section_order_sql('k') . ', k.sort_order, k.id',
+            [$subjectId, $c['grade_level']]
+        );
+    }
+
+    return [];
+}
+
+
+/**
+ * Компетентности за вече записан стандартен анализ.
+ *
+ * За нов анализ competencies_for() остава единственият източник. При
+ * Преглед/Редакция обаче записаните отметки са snapshot на анализа и не
+ * трябва да изчезват, ако по-късно е променена административната
+ * класификация на предмета или връзката му с програма.
+ *
+ * Връщаме текущия официален списък и задължително добавяме всяка
+ * компетентност, която реално участва в mo_entry_competencies за entryId.
+ * Ако текущият официален списък е празен, възстановяваме най-подходящия
+ * активен списък по предмет + клас + програма като legacy fallback.
+ */
+function competencies_for_existing_entry(int $entryId, int $subjectId, int $classId): array
+{
+    if ($entryId < 1 || $subjectId < 1 || $classId < 1 || subject_is_rpp($subjectId)) return [];
+
+    $current = competencies_for($subjectId, $classId);
+    $byId = [];
+    foreach ($current as $row) $byId[(int)$row['id']] = $row;
+
+    $class = one('SELECT grade_level,program_id FROM mo_classes WHERE id=?', [$classId]);
+
+    /* Ако текущата логика вече не може да определи вида на предмета,
+       възстановяваме списъка по реалната паралелка. Предпочитаме
+       програмно-специфичните компетентности; ако няма такива – общите. */
+    if (!$current && $class) {
+        $fallback = [];
+        if ($class['program_id'] !== null) {
+            $fallback = all(
+                'SELECT k.id,k.code,k.title,k.source,k.section,k.program_id,
+                        pr.name AS program_name,pr.kind AS program_kind
+                 FROM mo_competencies k
+                 LEFT JOIN mo_programs pr ON pr.id=k.program_id
+                 WHERE k.subject_id=? AND k.grade_level=? AND k.program_id=? AND k.is_active=1
+                 ORDER BY ' . section_order_sql('k') . ',k.sort_order,k.id',
+                [$subjectId, (int)$class['grade_level'], (int)$class['program_id']]
+            );
+        }
+        if (!$fallback) {
+            $fallback = all(
+                'SELECT k.id,k.code,k.title,k.source,k.section,k.program_id,
+                        pr.name AS program_name,pr.kind AS program_kind
+                 FROM mo_competencies k
+                 LEFT JOIN mo_programs pr ON pr.id=k.program_id
+                 WHERE k.subject_id=? AND k.grade_level=? AND k.program_id IS NULL AND k.is_active=1
+                 ORDER BY ' . section_order_sql('k') . ',k.sort_order,k.id',
+                [$subjectId, (int)$class['grade_level']]
+            );
+        }
+        foreach ($fallback as $row) {
+            $id = (int)$row['id'];
+            if (!isset($byId[$id])) {
+                $current[] = $row;
+                $byId[$id] = $row;
+            }
+        }
+    }
+
+    /* Записаните отметки са най-важният snapshot. Добавяме ги дори ако
+       компетентността вече е деактивирана или е отпаднала от текущия
+       официален набор, за да не се губи съдържание от стар анализ. */
+    $savedRows = all(
+        'SELECT k.id,k.code,k.title,k.source,k.section,k.program_id,
+                pr.name AS program_name,pr.kind AS program_kind
+         FROM mo_entry_competencies ec
+         JOIN mo_competencies k ON k.id=ec.competency_id
+         LEFT JOIN mo_programs pr ON pr.id=k.program_id
+         WHERE ec.entry_id=?
+         ORDER BY ' . section_order_sql('k') . ',k.sort_order,k.id',
+        [$entryId]
     );
+    foreach ($savedRows as $row) {
+        $id = (int)$row['id'];
+        if (!isset($byId[$id])) {
+            $current[] = $row;
+            $byId[$id] = $row;
+        }
+    }
+
+    return $current;
 }
 
 /** Папката, в която се пазят изготвените документи. */
@@ -317,58 +564,339 @@ function docs_dir(): string
 }
 
 /* --------------------------------------------------------------------
- * Методически обединения.
- * Един предмет може да е в различно МО според професията/специалността
- * на паралелката. В mo_subject_program_departments program_id=NULL е
- * общо правило, а конкретното program_id го заменя за съответната програма.
+ * Методически обединения – автоматично маршрутизиране v5.
+ *
+ * Има две независими правила:
+ *   1) професия/специалност -> отговорно МО  (mo_department_programs)
+ *   2) общообразователен предмет -> едно МО (mo_subject_departments)
+ *
+ * Типът на предмета е глобален според компетентностите:
+ * - общообразователните предмети използват mo_subject_departments;
+ * - професионалните предмети използват професията/специалността на класа
+ *   чрез mo_department_programs.
+ *
+ * „Чужд език по професията“ е изрично общообразователно изключение, но
+ * компетентностите му могат да останат програмно-специфични.
  * ------------------------------------------------------------------ */
 
-/**
- * Назначението на предмет към МО за конкретна професия/специалност.
- * Конкретната програма има приоритет пред общото правило (program_id IS NULL).
- */
-function subject_department_assignment(int $subjectId, ?int $programId): ?array
+/** Пълни данни за активно МО, включително ръководството. */
+function department_assignment_details(int $departmentId): ?array
 {
-    if ($programId !== null) {
-        $r = one('SELECT a.id, a.subject_id, a.program_id, a.department_id, d.name AS department_name
-                  FROM mo_subject_program_departments a
-                  JOIN mo_departments d ON d.id = a.department_id
-                  WHERE a.subject_id = ? AND a.program_id = ? AND a.is_active = 1
-                  LIMIT 1', [$subjectId, $programId]);
-        if ($r) return $r;
+    return one(
+        'SELECT d.id AS department_id, d.name AS department_name,
+                d.is_active AS department_active, d.chair_id, d.deputy_id,
+                ' . user_name_sql('ch') . ' AS chair_name, ch.email AS chair_email,
+                ' . user_name_sql('dp') . ' AS deputy_name, dp.email AS deputy_email
+         FROM mo_departments d
+         LEFT JOIN users ch ON ch.id = d.chair_id
+         LEFT JOIN users dp ON dp.id = d.deputy_id
+         WHERE d.id = ?
+         LIMIT 1',
+        [$departmentId]
+    );
+}
+
+/** Отговорното МО за конкретна професия/специалност. */
+function program_department_assignment(?int $programId): ?array
+{
+    if (!$programId) return null;
+    $r = one(
+        'SELECT dp.id, dp.program_id, dp.department_id, dp.is_active,
+                d.name AS department_name, d.is_active AS department_active
+         FROM mo_department_programs dp
+         JOIN mo_departments d ON d.id = dp.department_id
+         WHERE dp.program_id = ? AND dp.is_active = 1
+           AND d.is_active = 1 AND d.department_type = \'professional\'
+         LIMIT 1',
+        [$programId]
+    );
+    if (!$r) return null;
+    $details = department_assignment_details((int)$r['department_id']);
+    return $details ? array_merge($r, $details) : $r;
+}
+
+/**
+ * Единственото общообразователно МО на предмета.
+ * mo_subject_departments вече се използва само за тази цел.
+ */
+function general_subject_department_assignment(int $subjectId): array
+{
+    $rows = all(
+        'SELECT sd.id, sd.subject_id, sd.department_id, sd.is_active,
+                d.name AS department_name, d.is_active AS department_active,
+                d.chair_id, d.deputy_id,
+                ' . user_name_sql('ch') . ' AS chair_name, ch.email AS chair_email,
+                ' . user_name_sql('dp') . ' AS deputy_name, dp.email AS deputy_email
+         FROM mo_subject_departments sd
+         JOIN mo_departments d ON d.id = sd.department_id
+         LEFT JOIN users ch ON ch.id = d.chair_id
+         LEFT JOIN users dp ON dp.id = d.deputy_id
+         WHERE sd.subject_id = ? AND sd.is_active = 1
+           AND d.department_type = \'general\'
+         ORDER BY d.name',
+        [$subjectId]
+    );
+
+    if (!$rows) {
+        return [
+            'ok' => false,
+            'code' => 'general_subject_department',
+            'error' => 'За този общообразователен предмет няма зададено методическо обединение.',
+        ];
+    }
+    if (count($rows) > 1) {
+        return [
+            'ok' => false,
+            'code' => 'general_subject_multiple_departments',
+            'error' => 'Общообразователният предмет е зададен към повече от едно МО. Оставете само едно.',
+            'candidates' => $rows,
+        ];
+    }
+    if (!(int)$rows[0]['department_active']) {
+        return [
+            'ok' => false,
+            'code' => 'department_inactive',
+            'error' => 'Методическото обединение „' . $rows[0]['department_name'] . '“ е скрито.',
+            'candidates' => $rows,
+        ];
+    }
+    return [
+        'ok' => true,
+        'assignment' => $rows[0],
+        'resolution' => 'general_subject',
+    ];
+}
+
+/**
+ * Определя контекста на предмета за конкретната паралелка.
+ * Типът се определя глобално от subject_training_type(), за да съвпада
+ * точно с административната класификация на предметите.
+ */
+function subject_context_for_class(int $subjectId, int $classId): array
+{
+    $c = one('SELECT id, grade_level, program_id FROM mo_classes WHERE id=? AND is_active=1', [$classId]);
+    if (!$c) return ['ok'=>false, 'code'=>'class', 'error'=>'Паралелката не съществува или е скрита.'];
+
+    $programId = $c['program_id'] !== null ? (int)$c['program_id'] : null;
+    $grade = (int)$c['grade_level'];
+
+    if (subject_is_rpp($subjectId)) {
+        if (!$programId) {
+            return ['ok'=>false,'code'=>'program_missing','error'=>'Паралелката няма зададена професия/специалност.','mode'=>'professional','is_rpp'=>true];
+        }
+        if (!rpp_subject_available_for_class($subjectId, $classId)) {
+            return ['ok'=>false,'code'=>'subject_class','error'=>'Този РПП предмет не е зададен за класа и професията/специалността на избраната паралелка.','mode'=>'professional','is_rpp'=>true];
+        }
+        return ['ok'=>true,'mode'=>'professional','program_id'=>$programId,'grade_level'=>$grade,'is_rpp'=>true];
     }
 
-    return one('SELECT a.id, a.subject_id, a.program_id, a.department_id, d.name AS department_name
-                FROM mo_subject_program_departments a
-                JOIN mo_departments d ON d.id = a.department_id
-                WHERE a.subject_id = ? AND a.program_id IS NULL AND a.is_active = 1
-                LIMIT 1', [$subjectId]);
-}
+    $type = subject_training_type($subjectId);
+    if (!$type) {
+        return [
+            'ok'=>false,
+            'code'=>'subject_class',
+            'error'=>'Предметът няма активни компетентности и не може да се използва за анализ.',
+        ];
+    }
 
-/** МО-то на предмета за конкретна професия/специалност. */
-function department_of_subject_for_program(int $subjectId, ?int $programId): ?int
-{
-    $a = subject_department_assignment($subjectId, $programId);
-    return $a ? (int)$a['department_id'] : null;
-}
+    if ($type === 'professional') {
+        if (!$programId) {
+            return [
+                'ok'=>false,
+                'code'=>'program_missing',
+                'error'=>'Паралелката няма зададена професия/специалност.',
+                'mode'=>'professional',
+            ];
+        }
+        $specific = (bool)one(
+            'SELECT id FROM mo_competencies
+             WHERE subject_id=? AND grade_level=? AND program_id=? AND is_active=1 LIMIT 1',
+            [$subjectId, $grade, $programId]
+        );
+        if (!$specific) {
+            return [
+                'ok'=>false,
+                'code'=>'subject_class',
+                'error'=>'Този професионален предмет няма компетентности за специалността/професията на избраната паралелка.',
+                'mode'=>'professional',
+            ];
+        }
+        return ['ok'=>true, 'mode'=>'professional', 'program_id'=>$programId, 'grade_level'=>$grade];
+    }
 
-/** МО-то на предмета според професията/специалността на избраната паралелка. */
-function department_of_subject_for_class(int $subjectId, int $classId): ?int
-{
-    $c = one('SELECT program_id FROM mo_classes WHERE id = ?', [$classId]);
-    if (!$c) return null;
-    $programId = $c['program_id'] !== null ? (int)$c['program_id'] : null;
-    return department_of_subject_for_program($subjectId, $programId);
+    // Общообразователен предмет. За „Чужд език по професията“ са валидни
+    // и компетентности за конкретната програма, но маршрутът остава general.
+    $available = false;
+    if (subject_is_general_exception($subjectId) && $programId) {
+        $available = (bool)one(
+            'SELECT id FROM mo_competencies
+             WHERE subject_id=? AND grade_level=? AND program_id=? AND is_active=1 LIMIT 1',
+            [$subjectId, $grade, $programId]
+        );
+    }
+    if (!$available) {
+        $available = (bool)one(
+            'SELECT id FROM mo_competencies
+             WHERE subject_id=? AND grade_level=? AND program_id IS NULL AND is_active=1 LIMIT 1',
+            [$subjectId, $grade]
+        );
+    }
+    if (!$available) {
+        return [
+            'ok'=>false,
+            'code'=>'subject_class',
+            'error'=>'Този общообразователен предмет няма компетентности за избраната паралелка.',
+            'mode'=>'general',
+        ];
+    }
+
+    return ['ok'=>true, 'mode'=>'general', 'program_id'=>$programId, 'grade_level'=>$grade];
 }
 
 /**
- * Общото МО на предмета (ако има правило „всички професии/специалности“).
- * Оставено е за съвместимост с по-стар код; при анализ използвайте
- * department_of_subject_for_class().
+ * Автоматично определя МО за предмет + клас.
  */
+function resolve_subject_department_for_class(int $subjectId, int $classId): array
+{
+    $context = subject_context_for_class($subjectId, $classId);
+    if (empty($context['ok'])) return $context;
+
+    if (($context['mode'] ?? '') === 'professional') {
+        $programId = (int)($context['program_id'] ?? 0);
+        if (!$programId) {
+            return [
+                'ok'=>false,
+                'code'=>'program_missing',
+                'error'=>'Паралелката няма зададена професия/специалност.',
+                'route_mode'=>'professional',
+            ];
+        }
+        $assignment = program_department_assignment($programId);
+        if (!$assignment || !(int)($assignment['department_active'] ?? 0)) {
+            return [
+                'ok'=>false,
+                'code'=>'program_department',
+                'error'=>'За професията/специалността на паралелката няма зададено активно методическо обединение.',
+                'route_mode'=>'professional',
+            ];
+        }
+        return [
+            'ok'=>true,
+            'assignment'=>$assignment,
+            'resolution'=>'program_department',
+            'route_mode'=>'professional',
+        ];
+    }
+
+    $general = general_subject_department_assignment($subjectId);
+    $general['route_mode'] = 'general';
+    return $general;
+}
+
+function department_of_subject_for_class(int $subjectId, int $classId): ?int
+{
+    $r = resolve_subject_department_for_class($subjectId, $classId);
+    return !empty($r['ok']) ? (int)$r['assignment']['department_id'] : null;
+}
+
+/**
+ * Legacy helper: mo_subjects.department_id отразява само едното
+ * общообразователно МО на предмета.
+ */
+function sync_subject_legacy_department(int $subjectId): void
+{
+    $rows = all('SELECT department_id FROM mo_subject_departments WHERE subject_id=? AND is_active=1 ORDER BY department_id', [$subjectId]);
+    $dep = count($rows) === 1 ? (int)$rows[0]['department_id'] : null;
+    q('UPDATE mo_subjects SET department_id=? WHERE id=?', [$dep, $subjectId]);
+}
+
+/** Пълният маршрут на анализ до председателя на правилното МО. */
+function analysis_route(int $subjectId, int $classId, ?int $yearId = null): array
+{
+    $class = one('SELECT c.id, c.name, c.year_id, c.grade_level, c.program_id, c.is_active,
+                         p.name AS program_name, p.kind AS program_kind
+                  FROM mo_classes c
+                  LEFT JOIN mo_programs p ON p.id = c.program_id
+                  WHERE c.id = ?', [$classId]);
+    if (!$class || !(int)$class['is_active']) {
+        return ['ok' => false, 'code' => 'class', 'error' => 'Паралелката не съществува или е скрита.'];
+    }
+    if ($yearId !== null && (int)$class['year_id'] !== $yearId) {
+        return ['ok' => false, 'code' => 'year', 'error' => 'Паралелката не е от избраната учебна година.'];
+    }
+
+    $subject = one('SELECT id, name, is_active FROM mo_subjects WHERE id = ?', [$subjectId]);
+    if (!$subject || !(int)$subject['is_active']) {
+        return ['ok' => false, 'code' => 'subject', 'error' => 'Предметът не съществува или е скрит.'];
+    }
+
+    $resolved = resolve_subject_department_for_class($subjectId, $classId);
+    if (empty($resolved['ok'])) {
+        return array_merge($resolved, ['class'=>$class, 'subject'=>$subject]);
+    }
+
+    $assignment = $resolved['assignment'];
+    $chairId = $assignment['chair_id'] !== null ? (int)$assignment['chair_id'] : 0;
+    $chairName = trim((string)($assignment['chair_name'] ?? ''));
+    if (!$chairId) {
+        return [
+            'ok'=>false,
+            'code'=>'chair',
+            'error'=>'За ' . $assignment['department_name'] . ' няма назначен председател. Анализът може да се пази като чернова, но не може да бъде изпратен.',
+            'department_id'=>(int)$assignment['department_id'],
+            'department_name'=>$assignment['department_name'],
+            'class'=>$class,
+            'subject'=>$subject,
+            'assignment'=>$assignment,
+            'resolution'=>$resolved['resolution'] ?? null,
+            'route_mode'=>$resolved['route_mode'] ?? null,
+        ];
+    }
+
+    return [
+        'ok'=>true,
+        'department_id'=>(int)$assignment['department_id'],
+        'department_name'=>$assignment['department_name'],
+        'methodist_id'=>$chairId,
+        'methodist_name'=>$chairName !== '' ? $chairName : (string)($assignment['chair_email'] ?? ''),
+        'methodist_email'=>(string)($assignment['chair_email'] ?? ''),
+        'deputy_id'=>$assignment['deputy_id'] !== null ? (int)$assignment['deputy_id'] : null,
+        'deputy_name'=>trim((string)($assignment['deputy_name'] ?? '')),
+        'class'=>$class,
+        'subject'=>$subject,
+        'assignment'=>$assignment,
+        'resolution'=>$resolved['resolution'] ?? null,
+        'route_mode'=>$resolved['route_mode'] ?? null,
+        'is_rpp'=>subject_is_rpp($subjectId),
+    ];
+}
+
+/** Единственото общообразователно МО на предмета, ако е зададено еднозначно. */
 function department_of_subject(int $subjectId): ?int
 {
-    return department_of_subject_for_program($subjectId, null);
+    $r = general_subject_department_assignment($subjectId);
+    return !empty($r['ok']) ? (int)$r['assignment']['department_id'] : null;
+}
+
+/**
+ * Синхронизира производната роля "methodist" с ръководството на МО.
+ * Ролята не се назначава ръчно: председателите и заместниците я получават
+ * автоматично, а при освобождаване се премахва, ако човекът не ръководи друго МО.
+ */
+function sync_methodist_roles(?int $assignedBy = null): void
+{
+    q('DELETE r FROM mo_user_roles r
+       LEFT JOIN mo_departments d
+         ON d.is_active = 1 AND (d.chair_id = r.user_id OR d.deputy_id = r.user_id)
+       WHERE r.role = "methodist" AND d.id IS NULL');
+
+    q('INSERT IGNORE INTO mo_user_roles (user_id, role, assigned_by)
+       SELECT x.user_id, "methodist", ?
+       FROM (
+           SELECT chair_id AS user_id FROM mo_departments WHERE is_active=1 AND chair_id IS NOT NULL
+           UNION
+           SELECT deputy_id AS user_id FROM mo_departments WHERE is_active=1 AND deputy_id IS NOT NULL
+       ) x', [$assignedBy]);
 }
 
 /** МО-тата, в които потребителят е председател или заместник. */

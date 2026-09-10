@@ -33,17 +33,33 @@ function summary_data(int $departmentId, int $yid, string $term): array
                     GROUP BY class_name, grade_level, program_name
                     ORDER BY grade_level, class_name', $P);
 
-    $failed = all('SELECT k.title, k.code, s.name subject_name, c.grade_level,
-                          SUM(ec.state="not_mastered") failed, SUM(ec.state="partial") partial
-                   FROM mo_entry_competencies ec
-                   JOIN mo_competencies k ON k.id = ec.competency_id
-                   JOIN mo_subjects s ON s.id = k.subject_id
-                   JOIN mo_entries e ON e.id = ec.entry_id
-                   JOIN mo_classes c ON c.id = e.class_id
-                   WHERE e.department_id=:d AND e.status="sent" AND e.year_id=:y AND e.term=:t
-                   GROUP BY k.id, k.title, k.code, s.name, c.grade_level
+    $failed = all('SELECT z.title,z.code,z.subject_name,z.grade_level,
+                          SUM(z.failed) failed,SUM(z.partial) partial
+                   FROM (
+                     SELECT k.title,k.code,s.name subject_name,c.grade_level,
+                            SUM(ec.state="not_mastered") failed,SUM(ec.state="partial") partial
+                     FROM mo_entry_competencies ec
+                     JOIN mo_competencies k ON k.id=ec.competency_id
+                     JOIN mo_subjects s ON s.id=k.subject_id
+                     JOIN mo_entries e ON e.id=ec.entry_id
+                     JOIN mo_classes c ON c.id=e.class_id
+                     WHERE e.department_id=:d1 AND e.status="sent" AND e.year_id=:y1 AND e.term=:t1
+                     GROUP BY k.id,k.title,k.code,s.name,c.grade_level
+                     UNION ALL
+                     SELECT mc.title,"РПП" AS code,s.name subject_name,c.grade_level,
+                            SUM(mc.state="not_mastered") failed,SUM(mc.state="partial") partial
+                     FROM mo_entry_manual_competencies mc
+                     JOIN mo_entries e ON e.id=mc.entry_id
+                     JOIN mo_subjects s ON s.id=e.subject_id
+                     JOIN mo_classes c ON c.id=e.class_id
+                     WHERE e.department_id=:d2 AND e.status="sent" AND e.year_id=:y2 AND e.term=:t2
+                     GROUP BY mc.title,s.name,c.grade_level
+                   ) z
+                   GROUP BY z.title,z.code,z.subject_name,z.grade_level
                    HAVING failed > 0 OR partial > 0
-                   ORDER BY failed DESC, partial DESC LIMIT 15', $P);
+                   ORDER BY failed DESC,partial DESC LIMIT 15',
+                  [':d1'=>$departmentId,':y1'=>$yid,':t1'=>$term,
+                   ':d2'=>$departmentId,':y2'=>$yid,':t2'=>$term]);
 
     $measures = all('SELECT teacher_name, subject_name, class_name, measures FROM mo_v_entries
                      WHERE department_id=:d AND status="sent" AND year_id=:y AND term=:t

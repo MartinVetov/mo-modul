@@ -20,7 +20,7 @@ function nav_items(array $u): array
     if (has_role('admin', $u)) {
         $n[] = ['url' => base_url('pages/admin_departments.php'), 'icon' => '🏛', 'label' => 'Методически обединения', 'key' => 'adm_dep'];
         $n[] = ['url' => base_url('pages/admin_competencies.php'), 'icon' => '☑', 'label' => 'Компетентности', 'key' => 'adm_comp'];
-        $n[] = ['url' => base_url('pages/admin_roles.php'),        'icon' => '👥', 'label' => 'Роли и методисти', 'key' => 'adm_roles'];
+        $n[] = ['url' => base_url('pages/admin_roles.php'),        'icon' => '👥', 'label' => 'Роли и права', 'key' => 'adm_roles'];
         $n[] = ['url' => base_url('pages/admin_setup.php'),        'icon' => '⚙', 'label' => 'Години и паралелки', 'key' => 'adm_setup'];
     }
     return $n;

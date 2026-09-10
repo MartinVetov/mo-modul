@@ -6,8 +6,9 @@ require_once __DIR__ . '/../lib/DocxWriter.php';
 require_once __DIR__ . '/../inc/summary_data.php';
 
 $u = require_user();
-$myDeps = my_departments($u);
-if (has_role('admin') && !$myDeps) $myDeps = all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name');
+$myDeps = has_role('admin', $u)
+    ? all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name')
+    : my_departments($u);
 if (!$myDeps) {
     http_response_code(403);
     die('<p style="font-family:sans-serif">Не сте председател или заместник на методическо обединение.</p>');
@@ -43,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Throwable $ex) {
             flash('AI: ' . e($ex->getMessage()), 'err');
         }
-        redirect(base_url('pages/methodist_summary.php?term=' . $term));
+        redirect(base_url('pages/methodist_summary.php?term=' . $term . '&dep=' . $depId));
     }
 
     /* запис на текстовете */
@@ -56,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($status === 'sent' && !$deputyId) {
         flash('Изберете зам-директор, до когото да изпратите обобщението.', 'err');
-        redirect(base_url('pages/methodist_summary.php?term=' . $term));
+        redirect(base_url('pages/methodist_summary.php?term=' . $term . '&dep=' . $depId));
     }
 
     q('UPDATE mo_summaries SET title=?, summary_text=?, strengths=?, improvements=?, measures=?,
@@ -94,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         flash('Обобщението е запазено.');
     }
-    redirect(base_url('pages/methodist_summary.php?term=' . $term));
+    redirect(base_url('pages/methodist_summary.php?term=' . $term . '&dep=' . $depId));
 }
 
 $rep = one('SELECT s.*, ' . user_name_sql('f') . ' AS finalized_name
@@ -107,7 +108,7 @@ header_html('Обобщение', 'sum');
 $myRole = department_role_bg(department_role($depId, $u));
 section_title('Обобщение · ' . ($dep['name'] ?? '') . ($myRole ? ' (' . $myRole . ')' : ''),
     '<a class="btn small" href="' . base_url('pages/methodist_docs.php') . '">Моите документи</a>');
-year_picker($term);
+year_picker($term, ['dep' => $depId]);
 ?>
 
 <div class="cards">
@@ -194,7 +195,7 @@ year_picker($term);
     </select>
   </label>
   <?php if (!$deputies): ?>
-    <p class="small danger">Няма назначени зам-директори. Администрацията ги задава от „Роли и методисти“.</p>
+    <p class="small danger">Няма назначени зам-директори. Администрацията ги задава от „Роли и права“.</p>
   <?php endif; ?>
 
   <div class="actions">

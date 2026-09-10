@@ -179,7 +179,7 @@ input:disabled, textarea:disabled, select:disabled{background:#f1f5f9; color:var
 .comp[data-state="mastered"] .box{background:var(--ok); border-color:var(--ok); color:#fff}
 .comp[data-state="mastered"] .box::after{content:"✓"}
 .comp[data-state="partial"] .box{background:var(--yellow); border-color:var(--yellow); color:#fff}
-.comp[data-state="partial"] .box::after{content:"✓"}
+.comp[data-state="partial"] .box::after{content:"–"; font-size:1.25rem; line-height:1; transform:translateY(-1px)}
 .comp[data-state="partial"]{background:#fffbf0}
 .comp[data-state="not_mastered"] .box{background:var(--red); border-color:var(--red); color:#fff}
 .comp[data-state="not_mastered"] .box::after{content:"✕"}
@@ -355,3 +355,1383 @@ body.mo-modal-open{overflow:hidden}
   font-weight:600; font-size:.82rem; letter-spacing:.02em;
   padding:.35rem .7rem; border-top:1px solid #dde6f4; border-bottom:1px solid #dde6f4}
 .clist .comp-section:first-child{border-top:0}
+
+/* ---------- автоматичен маршрут на анализа ---------- */
+.route-card{display:flex;flex-direction:column;justify-content:center;gap:.15rem;min-width:260px;
+  padding:.5rem .7rem;border:1px solid #d8e4f4;border-radius:9px;background:#f5f8fd}
+.route-card strong{color:var(--blue-deep);font-size:.9rem}
+.route-card .danger{color:var(--red);font-weight:600}
+
+
+/* =====================================================================
+   Страница „Нов/Редакция на анализ“ – по-въздушна стъпкова подредба
+   ===================================================================== */
+.sr-only{
+  position:absolute!important; width:1px!important; height:1px!important; padding:0!important;
+  margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important; border:0!important
+}
+.analysis-card{
+  padding:0;
+  overflow:hidden;
+  border-radius:14px;
+  box-shadow:0 4px 18px rgba(16,42,80,.07);
+}
+.analysis-section{
+  padding:1.35rem 1.45rem 1.5rem;
+  border-bottom:1px solid var(--line);
+}
+.analysis-section:last-child{border-bottom:0}
+.analysis-section:nth-child(even){background:#fbfcfe}
+.analysis-section-head{
+  display:flex;
+  align-items:flex-start;
+  gap:.85rem;
+  margin-bottom:1.15rem;
+}
+.analysis-section-head h2{
+  margin:0;
+  color:var(--blue-deep);
+  font-size:1.08rem;
+  line-height:1.35;
+}
+.analysis-section-head p{
+  margin:.18rem 0 0;
+  max-width:920px;
+  color:var(--ink-soft);
+  font-size:.86rem;
+}
+.analysis-step{
+  flex:0 0 30px;
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:linear-gradient(180deg,#3d74bf,#1c4a8f);
+  color:#fff;
+  font-weight:700;
+  font-size:.85rem;
+  box-shadow:0 2px 5px rgba(28,74,143,.2);
+}
+.analysis-context-grid{
+  display:grid;
+  grid-template-columns:minmax(230px,1fr) minmax(280px,1.35fr) minmax(150px,.55fr);
+  gap:1rem 1.15rem;
+  align-items:end;
+}
+.analysis-context-grid label{margin:0}
+.analysis-context-grid select{
+  min-height:43px;
+  margin-top:.35rem;
+}
+.analysis-context-grid .route-card{
+  grid-column:1 / -1;
+  min-width:0;
+  min-height:66px;
+  padding:.75rem .9rem;
+  border-radius:11px;
+  background:linear-gradient(180deg,#f7faff,#f1f6fd);
+}
+.analysis-context-grid .route-card strong{font-size:.95rem}
+.analysis-competencies .legend{
+  margin:0 0 .9rem 3.15rem;
+  gap:.65rem 1.15rem;
+}
+.analysis-competencies .comps{
+  margin-top:0;
+  border-radius:12px;
+}
+.analysis-competencies .comps .chead{
+  min-height:52px;
+  padding:.7rem .9rem;
+  gap:.65rem;
+}
+.chead-actions{display:flex;gap:.45rem;flex-wrap:wrap}
+.analysis-competencies .comps .chead .cnt{
+  width:100%;
+  margin:.1rem 0 0;
+  padding-top:.4rem;
+  border-top:1px dashed #d8e1ed;
+  font-size:.8rem;
+}
+.analysis-competencies .clist .comp{
+  padding:.78rem .9rem;
+  gap:.8rem;
+  min-height:58px;
+  line-height:1.45;
+}
+.analysis-competencies .comp .box{
+  width:24px;
+  height:24px;
+  border-radius:6px;
+}
+.analysis-competencies .comp .txt{font-size:.92rem}
+.comp-empty{
+  grid-column:1 / -1;
+  margin:0;
+  padding:1.2rem!important;
+  text-align:center;
+}
+.analysis-quantitative fieldset.quant{
+  margin:0 0 0 3.15rem;
+  padding:1rem;
+  border-radius:12px;
+}
+.analysis-quantitative .grades{gap:.75rem}
+.analysis-quantitative .grades label{
+  padding:.55rem .4rem .6rem;
+  border-radius:11px;
+}
+.analysis-quantitative .calcline{
+  margin:.8rem 0 0;
+  padding:.6rem .8rem;
+}
+.analysis-measures .inline-note{
+  margin:0 0 0 3.15rem;
+}
+.analysis-measures textarea{
+  min-height:145px;
+  padding:.85rem 1rem;
+  line-height:1.55;
+  border-radius:12px;
+}
+#entryForm > .actions{
+  margin:1rem 0 0;
+  padding:1rem .25rem;
+  justify-content:flex-end;
+  gap:.75rem;
+}
+#entryForm > .actions .btn{min-width:145px}
+#entryForm > .actions .btn.primary{min-width:195px}
+
+/* по-ясна частично усвоена компетентност: жълта кутия с тире */
+.comp[data-state="partial"] .box::after{
+  content:"–";
+  font-size:1.28rem;
+  line-height:1;
+  font-weight:800;
+}
+
+@media (max-width:1100px){
+  .analysis-context-grid{grid-template-columns:1fr 1fr}
+  .analysis-context-grid label:nth-of-type(3){grid-column:1 / 2}
+}
+@media (max-width:760px){
+  .analysis-section{padding:1.05rem .9rem 1.2rem}
+  .analysis-context-grid{grid-template-columns:1fr;gap:.75rem}
+  .analysis-context-grid label:nth-of-type(3),
+  .analysis-context-grid .route-card{grid-column:auto}
+  .analysis-competencies .legend,
+  .analysis-quantitative fieldset.quant,
+  .analysis-measures .inline-note{margin-left:0}
+  .analysis-section-head{gap:.65rem;margin-bottom:.9rem}
+  .analysis-step{width:27px;height:27px;flex-basis:27px}
+  #entryForm > .actions{justify-content:stretch}
+  #entryForm > .actions .btn{flex:1 1 100%;min-width:0}
+}
+
+/* Администрация v3: обхват на МО и многократно назначаване на предмети */
+.scope-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+  gap:1rem;
+  margin-top:1rem;
+}
+.scope-card{
+  border:1px solid #dfe7f1;
+  border-radius:12px;
+  padding:1rem;
+  background:#fff;
+}
+.scope-card h3{margin:0 0 .75rem;font-size:1rem}
+.scope-columns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1rem;
+  margin-bottom:.9rem;
+}
+.checkline{
+  display:flex;
+  align-items:flex-start;
+  gap:.45rem;
+  margin:.42rem 0;
+  line-height:1.3;
+}
+.checkline input{margin-top:.15rem;flex:0 0 auto}
+.checkline.compact{
+  display:inline-flex;
+  margin:.2rem .55rem .2rem 0;
+  padding:.3rem .45rem;
+  border:1px solid #e1e8f1;
+  border-radius:8px;
+  background:#f8fafc;
+}
+.inline-checks{display:flex;flex-wrap:wrap;align-items:center;gap:.15rem .25rem}
+.subject-deps-form{display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap}
+.subject-deps-form .inline-checks{flex:1 1 560px}
+.subject-routing-grid td{vertical-align:top}
+.route-health .stats{margin-top:.7rem}
+@media (max-width:760px){
+  .scope-columns{grid-template-columns:1fr}
+  .scope-grid{grid-template-columns:1fr}
+  .checkline.compact{display:flex;width:100%}
+}
+
+/* =====================================================================
+   Компактен responsive дизайн: Методически обединения + Нов анализ
+   Само визуални промени — без промяна на бизнес логиката.
+   ===================================================================== */
+
+/* ---------- Методически обединения ---------- */
+.admin-routing-panel{padding:1rem 1.05rem 1.1rem}
+.admin-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.7rem}
+.admin-panel-head.compact{margin-bottom:.65rem}
+.admin-panel-head h2{display:flex;align-items:center;gap:.55rem;margin:0;font-size:1.02rem;line-height:1.25}
+.admin-panel-head p{margin:.2rem 0 0;max-width:1000px;line-height:1.4}
+.admin-step{display:inline-grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border-radius:50%;background:var(--blue);color:#fff;font-size:.76rem;font-weight:700}
+
+.route-health{padding:.8rem 1rem}
+.route-health h2{margin:0 0 .45rem;font-size:1rem}
+.route-health .stats{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:.55rem;margin:.45rem 0 .55rem}
+.route-health .stat{padding:.55rem .7rem;border-radius:9px;box-shadow:none}
+.route-health .stat .k{font-size:1.3rem;line-height:1.1}
+.route-health .stat span:last-child{display:block;margin-top:.08rem;font-size:.76rem;color:var(--ink-soft);line-height:1.25}
+.route-health > p{margin:.35rem 0 0;line-height:1.4}
+
+.admin-create-form{display:grid;grid-template-columns:minmax(240px,1fr) minmax(250px,1fr) auto;gap:.65rem;align-items:end;padding:.65rem .7rem;margin:.25rem 0 .85rem;background:#f7f9fc;border:1px solid var(--line);border-radius:10px}
+.admin-create-form label{margin:0;min-width:0}
+.admin-create-form input,.admin-create-form select{margin-top:.22rem}
+.admin-create-btn{white-space:nowrap;margin-bottom:0}
+
+.department-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
+.department-card{min-width:0;border:1px solid #dfe7f1;border-radius:11px;background:#fff;padding:.72rem;box-shadow:0 1px 3px rgba(16,42,80,.04)}
+.department-card.off{opacity:.62;background:#fafbfc}
+.department-card-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.55rem;padding-bottom:.55rem;border-bottom:1px solid #edf1f6}
+.dep-name-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;min-width:0}
+.dep-name-form input{min-width:0;margin:0;font-weight:600;color:var(--blue-deep);padding:.42rem .65rem}
+.dep-name-form .btn{white-space:nowrap}
+.department-status{padding-top:.3rem;white-space:nowrap}
+
+.dep-heads-form{display:grid;grid-template-columns:1fr 1fr auto;gap:.5rem;align-items:end;margin-top:.55rem}
+.dep-heads-form label{margin:0;min-width:0;font-size:.79rem}
+.dep-heads-form select{margin-top:.2rem;padding:.42rem .6rem;min-width:0}
+.dep-heads-save{white-space:nowrap}
+.dep-warning{margin:.5rem 0 0;padding:.38rem .52rem;border:1px solid #f0d7b0;border-radius:7px;background:#fff8eb;color:var(--amber);font-size:.76rem;line-height:1.35}
+
+.department-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-top:.55rem}
+.department-metrics > div{display:flex;align-items:baseline;justify-content:center;gap:.3rem;padding:.38rem .35rem;background:#f7f9fc;border:1px solid #e7edf5;border-radius:8px;min-width:0}
+.department-metrics strong{font-size:1rem;color:var(--blue-deep)}
+.department-metrics span{font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
+.department-actions{display:flex;justify-content:flex-end;gap:.4rem;flex-wrap:wrap;margin-top:.55rem;padding-top:.5rem;border-top:1px solid #edf1f6}
+.department-actions form{margin:0}
+
+.admin-subsection{margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line)}
+.scope-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-top:.6rem}
+.scope-card{min-width:0;padding:.72rem;border-radius:10px;box-shadow:none}
+.scope-card-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding-bottom:.45rem;margin-bottom:.45rem;border-bottom:1px solid #edf1f6}
+.scope-card-head h3{margin:0;min-width:0;font-size:.9rem;line-height:1.3}
+.scope-card-head .badge{white-space:nowrap}
+.scope-columns{grid-template-columns:1fr 1fr;gap:.65rem;margin:0}
+.scope-group{min-width:0}
+.scope-group > strong{display:block;margin-bottom:.25rem;font-size:.78rem;color:var(--blue-deep)}
+.scope-list{display:flex;flex-direction:column;gap:.18rem}
+.scope-list .checkline{margin:0;padding:.25rem .32rem;border-radius:6px;font-size:.78rem;color:var(--ink);line-height:1.25}
+.scope-list .checkline:hover{background:#f4f7fb}
+.scope-list .checkline input{margin-top:.08rem}
+.scope-card-actions{display:flex;justify-content:flex-end;margin-top:.55rem;padding-top:.5rem;border-top:1px solid #edf1f6}
+
+.subject-create-form{grid-template-columns:minmax(210px,.7fr) minmax(360px,1.8fr) auto}
+.subject-name-field{min-width:0}
+.subject-create-form .inline-checks{align-content:center;gap:.22rem}
+.checkline.compact{margin:.1rem .18rem .1rem 0;padding:.22rem .38rem;font-size:.76rem;border-radius:7px;line-height:1.2}
+.subject-search-form{display:flex;align-items:end;gap:.45rem;margin:.55rem 0 .65rem}
+.subject-search-form label{flex:0 1 360px;margin:0}
+.subject-search-form .btn{margin-bottom:0}
+.subject-routing-grid{table-layout:fixed;font-size:.84rem}
+.subject-routing-grid th,.subject-routing-grid td{padding:.4rem .45rem!important}
+.subject-routing-grid th:nth-child(1){width:27%!important}
+.subject-routing-grid th:nth-child(2){width:auto}
+.subject-routing-grid th:nth-child(3){width:68px}
+.subject-routing-grid th:nth-child(4){width:82px}
+.subject-name-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem;align-items:center}
+.subject-name-form input{margin:0;min-width:0;padding:.4rem .6rem}
+.subject-deps-form{gap:.4rem;align-items:center}
+.subject-deps-form .inline-checks{flex:1 1 420px;gap:.1rem .15rem}
+.subject-deps-form > .btn{flex:0 0 auto}
+.routing-logic-panel{padding:.75rem 1rem}
+.routing-logic-panel h2{margin:0 0 .3rem;font-size:.95rem}
+.routing-logic-panel p{margin:0;line-height:1.45}
+
+/* ---------- Нов анализ: по-компактен, но без припокриване ---------- */
+.analysis-card{border-radius:12px}
+.analysis-section{padding:.82rem 1rem .9rem}
+.analysis-section-head{gap:.6rem;margin-bottom:.65rem}
+.analysis-section-head h2{font-size:1rem;line-height:1.25}
+.analysis-section-head p{margin:.08rem 0 0;font-size:.8rem;line-height:1.35}
+.analysis-step{width:25px;height:25px;flex-basis:25px;font-size:.74rem;box-shadow:none}
+
+.analysis-context-grid{grid-template-columns:minmax(180px,.85fr) minmax(250px,1.35fr) minmax(125px,.5fr) minmax(255px,1.2fr);gap:.6rem;align-items:end}
+.analysis-context-grid label{margin:0;font-size:.82rem;min-width:0}
+.analysis-context-grid select{min-height:37px;margin-top:.2rem;padding:.42rem .65rem}
+.analysis-context-grid .route-card{grid-column:auto;min-width:0;min-height:58px;padding:.48rem .62rem;border-radius:9px}
+.analysis-context-grid .route-card strong{font-size:.84rem;line-height:1.25}
+.analysis-context-grid .route-card span{line-height:1.25}
+
+.analysis-competencies .legend{margin:0 0 .5rem 2.55rem;gap:.4rem .75rem;font-size:.76rem}
+.analysis-competencies .comps{border-radius:9px}
+.analysis-competencies .comps .chead{min-height:42px;padding:.45rem .65rem;gap:.45rem}
+.analysis-competencies .comps .chead .cnt{padding-top:.25rem;font-size:.74rem}
+.chead-actions{gap:.3rem}
+.analysis-competencies .clist .comp{padding:.5rem .65rem;gap:.6rem;min-height:46px;line-height:1.32}
+.analysis-competencies .comp .box{width:22px;height:22px;flex:0 0 22px;border-radius:5px}
+.analysis-competencies .comp .txt{font-size:.84rem}
+.comp-section{padding:.28rem .6rem;font-size:.76rem}
+.comp-empty{padding:.8rem!important}
+
+.analysis-quantitative fieldset.quant{margin:0 0 0 2.55rem;padding:.65rem;border-radius:9px}
+.analysis-quantitative .grades{grid-template-columns:repeat(6,minmax(72px,1fr));gap:.45rem}
+.analysis-quantitative .grades label{padding:.38rem .3rem .42rem;border-radius:8px;font-size:.72rem}
+.analysis-quantitative .grades label .g-num{font-size:1.12rem;margin-bottom:.04rem}
+.analysis-quantitative .grades label input{margin-top:.22rem;padding:.3rem .18rem;font-size:.94rem}
+.analysis-quantitative .calcline{margin:.5rem 0 0;padding:.38rem .55rem;font-size:.78rem}
+
+.analysis-measures .inline-note{margin:0 0 0 2.55rem}
+.analysis-measures textarea{min-height:100px;padding:.6rem .75rem;line-height:1.4;border-radius:9px}
+#entryForm > .actions{margin:.65rem 0 0;padding:.55rem .15rem;gap:.5rem}
+#entryForm > .actions .btn{min-width:125px}
+#entryForm > .actions .btn.primary{min-width:180px}
+
+@media (max-width:1320px){
+  .department-cards{grid-template-columns:1fr}
+  .analysis-context-grid{grid-template-columns:minmax(180px,1fr) minmax(250px,1.4fr) minmax(120px,.55fr)}
+  .analysis-context-grid .route-card{grid-column:1 / -1;min-height:0}
+}
+
+@media (max-width:1080px){
+  .route-health .stats{grid-template-columns:1fr 1fr 1fr}
+  .admin-create-form{grid-template-columns:1fr 1fr}
+  .admin-create-btn{grid-column:1 / -1;justify-self:end}
+  .dep-heads-form{grid-template-columns:1fr 1fr}
+  .dep-heads-save{grid-column:1 / -1;justify-self:end}
+  .scope-grid{grid-template-columns:1fr}
+  .subject-create-form{grid-template-columns:1fr}
+  .subject-create-form .inline-checks{min-width:0}
+  .subject-create-form .btn.primary{justify-self:start}
+  .analysis-quantitative .grades{grid-template-columns:repeat(3,1fr)}
+}
+
+@media (max-width:760px){
+  .admin-routing-panel{padding:.75rem}
+  .route-health .stats{grid-template-columns:1fr;gap:.35rem}
+  .route-health .stat{display:flex;align-items:center;gap:.55rem}
+  .route-health .stat .k{font-size:1.1rem}
+  .route-health .stat span:last-child{margin:0}
+  .admin-create-form{grid-template-columns:1fr;padding:.55rem}
+  .admin-create-btn{grid-column:auto;width:100%}
+  .department-card{padding:.6rem}
+  .department-card-head{grid-template-columns:1fr}
+  .department-status{padding-top:0}
+  .dep-name-form{grid-template-columns:1fr}
+  .dep-name-form .btn{justify-self:start}
+  .dep-heads-form{grid-template-columns:1fr}
+  .dep-heads-save{grid-column:auto;width:100%}
+  .department-metrics span{white-space:normal}
+  .scope-columns{grid-template-columns:1fr}
+  .subject-search-form{flex-wrap:wrap}
+  .subject-search-form label{flex:1 1 100%}
+  .subject-search-form .btn{flex:1 1 auto;text-align:center}
+  .subject-routing-grid{table-layout:auto}
+  .subject-name-form{grid-template-columns:1fr}
+  .subject-name-form .btn{justify-self:start}
+  .subject-deps-form{display:block}
+  .subject-deps-form > .btn{margin-top:.35rem;width:100%}
+  .checkline.compact{display:flex;width:auto;margin:.12rem 0}
+
+  .analysis-section{padding:.7rem .65rem .78rem}
+  .analysis-section-head{margin-bottom:.55rem}
+  .analysis-context-grid{grid-template-columns:1fr;gap:.5rem}
+  .analysis-context-grid .route-card{grid-column:auto}
+  .analysis-competencies .legend,.analysis-quantitative fieldset.quant,.analysis-measures .inline-note{margin-left:0}
+  .analysis-competencies .legend{gap:.3rem .6rem}
+  .analysis-quantitative .grades{grid-template-columns:repeat(2,1fr)}
+  .analysis-measures textarea{min-height:90px}
+}
+/* override от по-стария responsive блок */
+@media (max-width:1320px){.analysis-context-grid label:nth-of-type(3){grid-column:auto}}
+
+/* ==================================================================
+   Методически обединения — по-въздушен административен изглед
+   ================================================================== */
+#adminAjaxToast{
+  position:fixed;right:1.25rem;bottom:1.25rem;z-index:9999;
+  max-width:min(560px,calc(100vw - 2rem));
+  box-shadow:0 12px 30px rgba(16,42,80,.16);
+}
+
+#departmentsPanel.admin-routing-panel,
+#subjectsPanel.admin-routing-panel{
+  padding:1.35rem 1.45rem 1.5rem;
+}
+#departmentsPanel .admin-panel-head,
+#subjectsPanel .admin-panel-head{
+  margin-bottom:1rem;
+  padding-bottom:.75rem;
+  border-bottom:1px solid #e8eef5;
+}
+#departmentsPanel .admin-panel-head h2,
+#subjectsPanel .admin-panel-head h2{
+  display:block;
+  font-size:1.08rem;
+  line-height:1.35;
+}
+#departmentsPanel .admin-panel-head p,
+#subjectsPanel .admin-panel-head p{
+  margin-top:.3rem;
+  max-width:1050px;
+  line-height:1.55;
+}
+
+/* Ново МО */
+#departmentsPanel .admin-create-form{
+  grid-template-columns:minmax(260px,1.1fr) minmax(280px,1fr) auto;
+  gap:1rem;
+  padding:1rem 1.05rem;
+  margin:.1rem 0 1.25rem;
+  border-radius:12px;
+  background:#f8fafc;
+}
+#departmentsPanel .admin-create-form input,
+#departmentsPanel .admin-create-form select{
+  margin-top:.32rem;
+  min-height:42px;
+}
+
+/* Всяко МО е на собствен ред — повече място за ръководство и действия */
+#departmentsPanel .department-cards{
+  grid-template-columns:1fr;
+  gap:1rem;
+}
+#departmentsPanel .department-card{
+  padding:1rem 1.05rem;
+  border-radius:13px;
+  box-shadow:0 2px 7px rgba(16,42,80,.045);
+}
+#departmentsPanel .department-card-head{
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:1rem;
+  padding-bottom:.8rem;
+}
+#departmentsPanel .dep-name-form{
+  grid-template-columns:minmax(280px,1fr) auto;
+  gap:.65rem;
+}
+#departmentsPanel .dep-name-form input{
+  min-height:42px;
+  padding:.55rem .75rem;
+  font-size:.96rem;
+}
+#departmentsPanel .department-status{
+  padding-top:.45rem;
+}
+#departmentsPanel .dep-heads-form{
+  grid-template-columns:minmax(240px,1fr) minmax(240px,1fr) auto;
+  gap:.85rem;
+  margin-top:.9rem;
+  align-items:end;
+}
+#departmentsPanel .dep-heads-form label{
+  font-size:.82rem;
+  line-height:1.35;
+}
+#departmentsPanel .dep-heads-form select{
+  min-height:42px;
+  margin-top:.3rem;
+  padding:.5rem .7rem;
+}
+#departmentsPanel .dep-warning{
+  margin:.8rem 0 0;
+  padding:.55rem .7rem;
+  border-radius:8px;
+  font-size:.79rem;
+}
+#departmentsPanel .department-metrics{
+  grid-template-columns:repeat(3,minmax(110px,160px));
+  justify-content:start;
+  gap:.65rem;
+  margin-top:.85rem;
+}
+#departmentsPanel .department-metrics > div{
+  justify-content:flex-start;
+  gap:.42rem;
+  padding:.5rem .65rem;
+}
+#departmentsPanel .department-metrics strong{font-size:1.05rem}
+#departmentsPanel .department-metrics span{font-size:.76rem}
+#departmentsPanel .department-actions{
+  justify-content:flex-start;
+  gap:.55rem;
+  margin-top:.85rem;
+  padding-top:.75rem;
+}
+
+/* Обхват на МО */
+#departmentsPanel .admin-subsection{
+  margin-top:1.6rem;
+  padding-top:1.35rem;
+}
+#departmentsPanel .admin-subsection .admin-panel-head{
+  margin-bottom:.9rem;
+  padding-bottom:.65rem;
+}
+#departmentsPanel .scope-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1rem;
+  margin-top:.75rem;
+}
+#departmentsPanel .scope-card{
+  padding:1rem;
+  border-radius:12px;
+}
+#departmentsPanel .scope-card-head{
+  padding-bottom:.7rem;
+  margin-bottom:.75rem;
+}
+#departmentsPanel .scope-card-head h3{
+  font-size:.95rem;
+  line-height:1.4;
+}
+#departmentsPanel .scope-columns{
+  gap:1rem;
+}
+#departmentsPanel .scope-group > strong{
+  margin-bottom:.42rem;
+  font-size:.82rem;
+}
+#departmentsPanel .scope-list{
+  gap:.3rem;
+}
+#departmentsPanel .scope-list .checkline{
+  padding:.38rem .45rem;
+  font-size:.8rem;
+  line-height:1.35;
+}
+#departmentsPanel .scope-card-actions{
+  margin-top:.8rem;
+  padding-top:.7rem;
+}
+
+/* Предмети */
+#subjectsPanel .subject-create-form{
+  grid-template-columns:minmax(240px,.85fr) minmax(420px,1.8fr) auto;
+  gap:1rem;
+  padding:1rem 1.05rem;
+  margin:.1rem 0 1.05rem;
+  border-radius:12px;
+}
+#subjectsPanel .subject-create-form input[type="text"]{
+  min-height:42px;
+}
+#subjectsPanel .inline-checks{
+  gap:.32rem .4rem;
+}
+#subjectsPanel .checkline.compact{
+  margin:.12rem .18rem .12rem 0;
+  padding:.35rem .48rem;
+  line-height:1.3;
+}
+#subjectsPanel .subject-search-form{
+  gap:.65rem;
+  margin:.8rem 0 1rem;
+}
+#subjectsPanel .subject-search-form input{
+  min-height:40px;
+  margin-top:.28rem;
+}
+#subjectsPanel .subject-routing-grid{
+  font-size:.86rem;
+}
+#subjectsPanel .subject-routing-grid th,
+#subjectsPanel .subject-routing-grid td{
+  padding:.65rem .6rem!important;
+  vertical-align:top;
+}
+#subjectsPanel .subject-name-form{
+  gap:.5rem;
+}
+#subjectsPanel .subject-name-form input{
+  min-height:39px;
+  padding:.5rem .65rem;
+}
+#subjectsPanel .subject-deps-form{
+  gap:.6rem;
+}
+#subjectsPanel .subject-deps-form .inline-checks{
+  padding:.05rem 0 .2rem;
+}
+
+@media (max-width:1180px){
+  #departmentsPanel .dep-heads-form{grid-template-columns:1fr 1fr}
+  #departmentsPanel .dep-heads-save{grid-column:1 / -1;justify-self:start}
+  #subjectsPanel .subject-create-form{grid-template-columns:1fr}
+  #subjectsPanel .subject-create-form .btn.primary{justify-self:start}
+}
+@media (max-width:920px){
+  #departmentsPanel .scope-grid{grid-template-columns:1fr}
+  #departmentsPanel .admin-create-form{grid-template-columns:1fr 1fr}
+  #departmentsPanel .admin-create-btn{grid-column:1 / -1;justify-self:start}
+}
+@media (max-width:760px){
+  #departmentsPanel.admin-routing-panel,
+  #subjectsPanel.admin-routing-panel{padding:.9rem .75rem 1rem}
+  #departmentsPanel .admin-create-form{grid-template-columns:1fr;padding:.8rem}
+  #departmentsPanel .admin-create-btn{grid-column:auto;width:100%}
+  #departmentsPanel .department-card{padding:.8rem}
+  #departmentsPanel .department-card-head{grid-template-columns:1fr;gap:.5rem}
+  #departmentsPanel .dep-name-form{grid-template-columns:1fr}
+  #departmentsPanel .dep-name-form .btn{justify-self:start}
+  #departmentsPanel .dep-heads-form{grid-template-columns:1fr}
+  #departmentsPanel .dep-heads-save{grid-column:auto;width:100%}
+  #departmentsPanel .department-metrics{grid-template-columns:1fr 1fr 1fr;width:100%}
+  #departmentsPanel .department-metrics > div{justify-content:center;padding:.45rem .35rem}
+  #departmentsPanel .scope-columns{grid-template-columns:1fr;gap:.8rem}
+  #subjectsPanel .subject-create-form{padding:.8rem}
+  #subjectsPanel .subject-routing-grid th,
+  #subjectsPanel .subject-routing-grid td{padding:.55rem .45rem!important}
+}
+
+/* ==================================================================
+   Layout restoration — позициониране по първата версия, запазена v3 логика
+   ================================================================== */
+
+/* Нов анализ: един основен поток без номерирани стъпки */
+.classic-analysis.analysis-card{
+  padding:1.15rem 1.2rem 1.25rem;
+  overflow:visible;
+  border-radius:10px;
+  box-shadow:0 1px 4px rgba(16,42,80,.06);
+}
+.classic-analysis .analysis-top-fields{
+  grid-template-columns:minmax(210px,.9fr) minmax(280px,1.35fr) minmax(130px,.55fr) minmax(260px,1.1fr);
+  gap:.85rem 1rem;
+  align-items:end;
+  margin-bottom:.9rem;
+}
+.classic-analysis .analysis-top-fields label{margin:0;min-width:0}
+.classic-analysis .analysis-top-fields select{min-height:42px}
+.classic-analysis .route-card{
+  min-width:0;
+  min-height:66px;
+  padding:.7rem .85rem;
+  border-radius:10px;
+}
+.classic-analysis .legend{
+  margin:.8rem 0 .75rem;
+  gap:.6rem 1.1rem;
+  padding:.1rem .1rem;
+}
+.classic-analysis .comps{margin-top:0;border-radius:10px}
+.classic-analysis .comps .chead{padding:.65rem .8rem;gap:.55rem;min-height:48px}
+.classic-analysis .comps .chead .cnt{margin-left:auto;width:auto;border:0;padding:0}
+.classic-analysis .clist .comp{padding:.66rem .78rem;min-height:52px;line-height:1.4}
+.classic-analysis fieldset.quant{
+  margin:1.05rem 0 .85rem;
+  padding:.85rem .95rem .9rem;
+}
+.classic-analysis .grades{gap:.65rem}
+.classic-analysis .grades label{padding:.5rem .35rem .55rem}
+.classic-analysis .calcline{margin:.65rem 0 0;padding:.45rem .6rem}
+.classic-analysis .inline-note{margin:.8rem 0 0}
+.classic-analysis .inline-note textarea{min-height:125px;margin-top:.4rem;padding:.75rem .85rem}
+#entryForm > .actions{margin-top:.8rem;padding:.35rem 0;justify-content:flex-end;gap:.65rem}
+#entryForm > .actions .btn{min-width:135px}
+#entryForm > .actions .btn.primary{min-width:185px}
+
+/* Методически обединения: вертикални панели и редове, както в първата версия */
+.classic-admin-create,
+.classic-admin-panel{
+  padding:1.15rem 1.25rem 1.25rem;
+}
+.classic-admin-create h2,
+.classic-admin-panel h2{
+  margin:.05rem 0 .55rem;
+}
+.classic-admin-create .picker{
+  margin:.9rem 0 0;
+  gap:.85rem 1rem;
+}
+.classic-admin-create .picker label:first-of-type{flex:1 1 320px}
+.classic-admin-create .picker label:nth-of-type(2){flex:1 1 300px}
+.classic-admin-create .picker input,
+.classic-admin-create .picker select{min-height:42px}
+
+.table-scroll{width:100%;overflow-x:auto;margin-top:.9rem;padding-bottom:.15rem}
+.admin-departments-table{min-width:980px}
+.admin-departments-table th:nth-child(1){width:27%}
+.admin-departments-table th:nth-child(2){width:43%}
+.admin-departments-table th:nth-child(3){width:18%}
+.admin-departments-table th:nth-child(4){width:12%}
+.admin-departments-table th,
+.admin-departments-table td{padding:.75rem .7rem;vertical-align:top}
+.inline-edit-form{display:flex;align-items:center;gap:.5rem}
+.inline-edit-form input{margin:0;min-width:0}
+.inline-edit-form .btn{flex:0 0 auto}
+.admin-row-meta{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+.leadership-form{
+  display:grid;
+  grid-template-columns:minmax(190px,1fr) minmax(190px,1fr) auto;
+  gap:.6rem;
+  align-items:end;
+}
+.leadership-form label{margin:0;min-width:0}
+.leadership-form select{margin-top:.25rem;min-height:40px}
+.leadership-form .btn{white-space:nowrap;margin-bottom:0}
+.admin-stats-inline{display:flex;flex-direction:column;gap:.38rem;padding-top:.15rem}
+.admin-stats-inline span{font-size:.82rem;color:var(--ink-soft)}
+.admin-stats-inline strong{color:var(--blue-deep);font-size:.96rem}
+.admin-actions-cell form{margin:0 0 .45rem}
+.admin-actions-cell .btn{width:100%;text-align:center}
+.admin-section-separator{height:1px;background:var(--line);margin:1.45rem 0 1.3rem}
+
+.admin-scope-table{min-width:1050px}
+.admin-scope-table th:nth-child(1){width:22%}
+.admin-scope-table th:nth-child(2){width:31%}
+.admin-scope-table th:nth-child(3){width:34%}
+.admin-scope-table th:nth-child(4){width:13%}
+.admin-scope-table th,
+.admin-scope-table td{padding:.75rem .7rem;vertical-align:top}
+.admin-check-list{display:grid;grid-template-columns:1fr;gap:.28rem}
+.admin-check-list .checkline{margin:0;padding:.25rem .3rem;border-radius:6px}
+.admin-check-list .checkline:hover{background:#f6f8fb}
+
+.subject-add-picker{margin:.9rem 0 1.05rem;gap:.85rem 1rem;align-items:flex-end}
+.subject-add-picker > label{flex:1 1 280px}
+.inline-fieldset{
+  flex:2 1 520px;
+  min-width:300px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:.55rem .7rem .65rem;
+  margin:0;
+}
+.inline-fieldset legend{font-size:.8rem;color:var(--ink-soft);padding:0 .35rem}
+.inline-fieldset .inline-checks{gap:.28rem .4rem}
+.subject-search-picker{margin:.3rem 0 .8rem;gap:.6rem;align-items:flex-end}
+.subject-search-picker label{flex:1 1 320px}
+.subject-search-picker input{min-height:40px}
+.subject-routing-grid{min-width:980px;table-layout:auto;font-size:.88rem}
+.subject-routing-grid th,
+.subject-routing-grid td{padding:.65rem .6rem!important;vertical-align:top}
+.subject-routing-grid th:nth-child(1){width:28%!important}
+.subject-routing-grid th:nth-child(2){width:auto}
+.subject-routing-grid th:nth-child(3){width:70px!important}
+.subject-routing-grid th:nth-child(4){width:90px!important}
+.subject-name-form{display:flex;align-items:center;gap:.45rem}
+.subject-name-form input{margin:0;min-width:0}
+.subject-name-form .btn{flex:0 0 auto}
+.subject-deps-form{display:flex;align-items:flex-start;gap:.6rem;flex-wrap:wrap}
+.subject-deps-form .inline-checks{flex:1 1 560px;gap:.25rem .35rem}
+.subject-deps-form > .btn{flex:0 0 auto;margin-top:.12rem}
+
+@media (max-width:1180px){
+  .classic-analysis .analysis-top-fields{grid-template-columns:1fr 1.25fr .55fr}
+  .classic-analysis .route-card{grid-column:1 / -1;min-height:0}
+  .leadership-form{grid-template-columns:1fr 1fr}
+  .leadership-form .btn{grid-column:1 / -1;justify-self:start}
+}
+
+@media (max-width:900px){
+  .classic-analysis.analysis-card{padding:.95rem}
+  .classic-analysis .analysis-top-fields{grid-template-columns:1fr 1fr}
+  .classic-analysis .route-card{grid-column:1 / -1}
+  .classic-admin-create,.classic-admin-panel{padding:1rem}
+  .table-scroll{overflow:visible}
+  .admin-departments-table,.admin-scope-table,.subject-routing-grid{min-width:0}
+  .admin-departments-table tbody tr,
+  .admin-scope-table tbody tr,
+  .subject-routing-grid tbody tr{padding:.75rem 0}
+  .admin-departments-table tbody td,
+  .admin-scope-table tbody td,
+  .subject-routing-grid tbody td{padding:.38rem .2rem!important}
+  .leadership-form{grid-template-columns:1fr 1fr}
+  .admin-actions-cell{display:flex!important;gap:.5rem;flex-wrap:wrap}
+  .admin-actions-cell form{margin:0}
+  .admin-actions-cell .btn{width:auto}
+}
+
+@media (max-width:680px){
+  .classic-analysis .analysis-top-fields{grid-template-columns:1fr;gap:.65rem}
+  .classic-analysis .route-card{grid-column:auto}
+  .classic-analysis .legend{gap:.4rem .75rem}
+  .classic-analysis .grades{grid-template-columns:repeat(2,1fr)}
+  .classic-analysis .inline-note textarea{min-height:110px}
+  #entryForm > .actions{justify-content:stretch}
+  #entryForm > .actions .btn{flex:1 1 100%;min-width:0}
+  .leadership-form{grid-template-columns:1fr}
+  .leadership-form .btn{grid-column:auto;width:100%}
+  .inline-edit-form{align-items:stretch;flex-direction:column}
+  .inline-edit-form .btn{align-self:flex-start}
+  .subject-add-picker{display:block}
+  .subject-add-picker > label,.inline-fieldset{margin-bottom:.75rem;min-width:0}
+  .subject-add-picker > .btn{width:100%}
+  .subject-name-form{align-items:stretch;flex-direction:column}
+  .subject-name-form .btn{align-self:flex-start}
+  .subject-deps-form{display:block}
+  .subject-deps-form > .btn{margin-top:.55rem;width:100%}
+}
+
+/* По-спокоен статус панел — без допълнителни мини-карти */
+.route-health .stats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem 1.5rem;
+  margin:.65rem 0;
+  padding:.65rem 0;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.route-health .stat{
+  display:flex;
+  align-items:baseline;
+  gap:.4rem;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.route-health .stat .k{font-size:1.18rem;line-height:1;color:var(--blue-deep)}
+.route-health .stat span:last-child{margin:0;font-size:.8rem;color:var(--ink-soft)}
+
+/* ==================================================================
+   UI refinement v3.1 — ясни редове + компактни pill селектори
+   ================================================================== */
+
+/* Нов анализ: 3 полета на първи ред, маршрутът винаги на отделен ред */
+.classic-analysis .analysis-top-fields{
+  display:grid;
+  grid-template-columns:minmax(210px,.9fr) minmax(300px,1.35fr) minmax(135px,.55fr);
+  gap:.85rem 1rem;
+  align-items:end;
+  margin-bottom:.72rem;
+}
+.classic-analysis .route-card-wide{
+  display:grid;
+  grid-template-columns:auto minmax(220px,.8fr) minmax(280px,1.2fr);
+  align-items:center;
+  gap:.45rem 1rem;
+  width:100%;
+  min-height:0;
+  margin:0 0 .95rem;
+  padding:.62rem .82rem;
+}
+.classic-analysis .route-card-wide .route-label{
+  white-space:nowrap;
+  font-weight:700;
+}
+.classic-analysis .route-card-wide strong{
+  min-width:0;
+  font-size:.9rem;
+}
+.classic-analysis .route-card-wide .route-recipient{
+  min-width:0;
+  color:var(--ink-soft);
+}
+
+/* Ръководство: името на МО е собствен, пълен ред */
+.leadership-list{
+  display:grid;
+  gap:1rem;
+  margin-top:1rem;
+}
+.leadership-item{
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+  overflow:hidden;
+}
+.leadership-item.off{opacity:.68;background:#fafbfc}
+.leadership-name-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.8rem;
+  align-items:center;
+  padding:.75rem .85rem;
+  background:#f7f9fc;
+  border-bottom:1px solid var(--line);
+}
+.leadership-name-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.55rem;
+  align-items:center;
+  margin:0;
+}
+.leadership-name-form input{
+  margin:0;
+  min-width:0;
+  min-height:40px;
+  font-weight:700;
+  font-size:.96rem;
+  background:#fff;
+}
+.leadership-status{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.leadership-body{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(230px,.34fr);
+  gap:1rem;
+  align-items:start;
+  padding:.85rem;
+}
+.leadership-body .leadership-form{
+  display:grid;
+  grid-template-columns:minmax(200px,1fr) minmax(200px,1fr) auto;
+  gap:.65rem;
+  align-items:end;
+  margin:0;
+}
+.leadership-side{
+  display:grid;
+  gap:.65rem;
+  align-content:start;
+}
+.leadership-side .admin-stats-inline{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:wrap;
+  gap:.4rem .8rem;
+  padding:.1rem 0;
+}
+.leadership-actions{
+  display:flex;
+  gap:.45rem;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.leadership-actions form{margin:0}
+
+/* Обхват по МО: един ред за МО, а избраните стойности се виждат като pills */
+.scope-compact-list{
+  display:grid;
+  gap:.85rem;
+  margin-top:1rem;
+}
+.scope-compact-row{
+  display:grid;
+  grid-template-columns:minmax(220px,.65fr) minmax(0,1.8fr) auto;
+  gap:.9rem 1rem;
+  align-items:start;
+  padding:.8rem .85rem;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+}
+.scope-department-name{
+  line-height:1.35;
+  padding-top:.3rem;
+}
+.scope-pill-columns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:.8rem;
+  min-width:0;
+}
+.scope-pill-group{min-width:0}
+.field-caption{
+  display:block;
+  margin:0 0 .35rem;
+  color:var(--ink-soft);
+  font-size:.78rem;
+  font-weight:700;
+}
+.scope-save{
+  align-self:end;
+  padding-bottom:.05rem;
+}
+
+/* Универсален pill multi-select */
+.pill-picker{
+  min-width:0;
+}
+.pill-selected{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.35rem;
+  min-height:32px;
+  margin-bottom:.38rem;
+}
+.selection-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  max-width:100%;
+  padding:.28rem .38rem .28rem .55rem;
+  border:1px solid #cbd8e8;
+  border-radius:999px;
+  background:#f2f6fb;
+  color:var(--blue-deep);
+  font-size:.78rem;
+  line-height:1.15;
+  font-weight:600;
+}
+.selection-pill > span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pill-remove{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:#60738d;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  padding:0;
+  margin:0;
+  display:inline-grid;
+  place-items:center;
+  cursor:pointer;
+  font-size:1rem;
+  line-height:1;
+}
+.pill-remove:hover{background:#dde7f3;color:#243b5a}
+.pill-empty{
+  color:var(--ink-soft);
+  font-size:.78rem;
+  font-style:italic;
+}
+.pill-empty.is-hidden{display:none}
+.pill-picker [data-pill-hidden]{display:none}
+.pill-add{
+  width:100%;
+  min-height:36px;
+  margin:0;
+  padding:.35rem .6rem;
+  font-size:.82rem;
+  background:#fff;
+}
+
+/* Предмети: назначенията към МО също са pills */
+.subject-add-picker{
+  display:grid;
+  grid-template-columns:minmax(260px,.9fr) minmax(320px,1.35fr) auto;
+  gap:.8rem 1rem;
+  align-items:end;
+}
+.subject-add-routing{min-width:0}
+.subject-deps-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.55rem;
+  align-items:end;
+}
+.subject-route-save{align-self:end}
+.subject-routing-grid td:nth-child(2){min-width:330px}
+.subject-routing-grid .pill-selected{margin-bottom:.3rem}
+.subject-routing-grid .selection-pill{font-size:.75rem}
+.subject-routing-grid .pill-add{min-height:34px;font-size:.78rem}
+
+@media (max-width:1100px){
+  .classic-analysis .route-card-wide{
+    grid-template-columns:auto minmax(190px,.8fr) minmax(220px,1.2fr);
+  }
+  .leadership-body{grid-template-columns:1fr}
+  .leadership-side{
+    grid-template-columns:1fr auto;
+    align-items:center;
+  }
+  .scope-compact-row{grid-template-columns:1fr auto}
+  .scope-department-name{grid-column:1 / -1;padding-top:0}
+  .scope-pill-columns{grid-column:1}
+  .scope-save{grid-column:2}
+}
+
+@media (max-width:820px){
+  .classic-analysis .analysis-top-fields{grid-template-columns:1fr 1fr}
+  .classic-analysis .analysis-top-fields label:nth-child(3){grid-column:1 / -1;max-width:260px}
+  .classic-analysis .route-card-wide{
+    grid-template-columns:1fr;
+    gap:.2rem;
+  }
+  .leadership-name-row{grid-template-columns:1fr}
+  .leadership-status{justify-content:flex-start}
+  .leadership-body .leadership-form{grid-template-columns:1fr 1fr}
+  .leadership-body .leadership-form .btn{grid-column:1 / -1;justify-self:start}
+  .leadership-side{grid-template-columns:1fr}
+  .leadership-actions{justify-content:flex-start}
+  .scope-compact-row{grid-template-columns:1fr}
+  .scope-pill-columns{grid-column:auto;grid-template-columns:1fr}
+  .scope-save{grid-column:auto}
+  .subject-add-picker{grid-template-columns:1fr 1fr}
+  .subject-add-picker > .btn{grid-column:1 / -1;justify-self:start}
+}
+
+@media (max-width:620px){
+  .classic-analysis .analysis-top-fields{grid-template-columns:1fr}
+  .classic-analysis .analysis-top-fields label:nth-child(3){grid-column:auto;max-width:none}
+  .leadership-name-form{grid-template-columns:1fr}
+  .leadership-name-form .btn{justify-self:start}
+  .leadership-body .leadership-form{grid-template-columns:1fr}
+  .leadership-body .leadership-form .btn{grid-column:auto;width:100%}
+  .scope-pill-columns{grid-template-columns:1fr}
+  .subject-add-picker{grid-template-columns:1fr}
+  .subject-add-picker > .btn{grid-column:auto;width:100%}
+  .subject-deps-form{grid-template-columns:1fr}
+  .subject-route-save{width:100%}
+}
+
+/* v4: автоматично маршрутизиране на предметите */
+.auto-routing-grid td:nth-child(2){min-width:360px}
+.route-explain{margin:.38rem 0 .55rem;line-height:1.45}
+.general-subject-route-form{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto;
+  gap:.55rem .7rem;
+  align-items:end;
+  margin-top:.45rem;
+  max-width:680px;
+}
+.compact-route-label{margin:0;min-width:0}
+.compact-route-label select{width:100%;margin-top:.25rem}
+.subject-add-routing{align-self:center;line-height:1.45;max-width:760px}
+
+@media (max-width:820px){
+  .general-subject-route-form{grid-template-columns:1fr}
+  .general-subject-route-form .btn{justify-self:start}
+  .auto-routing-grid td:nth-child(2){min-width:0}
+}
+
+/* ============================================================
+   v5 – МО според тип: общообразователно / професионално
+   ============================================================ */
+.department-create-v5{
+  display:grid;
+  grid-template-columns:minmax(190px,.7fr) minmax(280px,1.4fr) minmax(240px,1fr) auto;
+  gap:.9rem 1rem;
+  align-items:end;
+}
+.department-create-v5 label,
+.department-type-v5 label,
+.department-heads-v5 label{margin:0;min-width:0}
+
+.department-admin-v5{padding:1.2rem}
+.department-v5-list{
+  display:grid;
+  gap:1.25rem;
+  margin-top:1rem;
+}
+.department-v5-item{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:0 1px 2px rgba(16,42,67,.04);
+}
+.department-v5-item.off{opacity:.68;background:#fafbfc}
+
+.department-v5-name{
+  padding:.9rem 1rem;
+  background:#f7f9fc;
+  border-bottom:1px solid var(--line);
+}
+.department-name-v5{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.65rem;
+  align-items:center;
+  margin:0;
+}
+.department-name-v5 input{
+  margin:0;
+  min-height:42px;
+  font-size:1rem;
+  font-weight:700;
+  background:#fff;
+}
+
+.department-v5-meta{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:1rem;
+  padding:.85rem 1rem .35rem;
+}
+.department-type-v5{
+  display:grid;
+  grid-template-columns:minmax(220px,300px) auto;
+  gap:.6rem;
+  align-items:end;
+  margin:0;
+}
+.department-type-v5 select{margin-top:.25rem}
+.department-v5-status{
+  display:flex;
+  gap:.45rem;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  padding-bottom:.1rem;
+}
+
+.department-heads-v5{
+  display:grid;
+  grid-template-columns:minmax(240px,1fr) minmax(240px,1fr) auto;
+  gap:.8rem 1rem;
+  align-items:end;
+  padding:.7rem 1rem 1rem;
+  margin:0;
+}
+
+.department-v5-scope{
+  margin:0 1rem;
+  padding:1rem;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fbfcfe;
+}
+.scope-v5-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:.8rem;
+}
+.scope-v5-head h3{margin:0 0 .2rem;font-size:1rem}
+.scope-v5-head p{margin:0;line-height:1.45}
+.scope-count{
+  flex:0 0 auto;
+  padding:.25rem .55rem;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#fff;
+  color:var(--ink-soft);
+  font-size:.75rem;
+  font-weight:700;
+}
+.scope-v5-form{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.8rem 1rem;
+  align-items:end;
+  margin:0;
+}
+.professional-scope-v5 .scope-pill-columns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1rem;
+}
+.scope-pill-group{min-width:0}
+
+.department-v5-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  padding:.8rem 1rem;
+  margin-top:1rem;
+  border-top:1px solid var(--line);
+  background:#fcfdff;
+}
+.department-v5-footer .admin-stats-inline{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.45rem 1rem;
+}
+.department-v5-footer .leadership-actions{
+  display:flex;
+  gap:.45rem;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+@media (max-width:1050px){
+  .department-create-v5{grid-template-columns:1fr 1.4fr}
+  .department-create-v5 .btn{justify-self:start}
+  .department-v5-meta{align-items:flex-start}
+  .department-heads-v5{grid-template-columns:1fr 1fr}
+  .department-heads-v5 .btn{grid-column:1 / -1;justify-self:start}
+}
+@media (max-width:760px){
+  .department-create-v5{grid-template-columns:1fr}
+  .department-v5-name,
+  .department-v5-meta,
+  .department-heads-v5,
+  .department-v5-footer{padding-left:.8rem;padding-right:.8rem}
+  .department-name-v5{grid-template-columns:1fr}
+  .department-name-v5 .btn{justify-self:start}
+  .department-v5-meta{display:grid;grid-template-columns:1fr}
+  .department-v5-status{justify-content:flex-start}
+  .department-type-v5{grid-template-columns:1fr}
+  .department-type-v5 .btn{justify-self:start}
+  .department-heads-v5{grid-template-columns:1fr}
+  .department-heads-v5 .btn{grid-column:auto;width:100%}
+  .department-v5-scope{margin-left:.8rem;margin-right:.8rem;padding:.8rem}
+  .scope-v5-head{display:grid;grid-template-columns:1fr}
+  .scope-count{justify-self:start}
+  .scope-v5-form{grid-template-columns:1fr}
+  .scope-v5-form > .btn{justify-self:start}
+  .professional-scope-v5 .scope-pill-columns{grid-template-columns:1fr}
+  .department-v5-footer{align-items:flex-start;flex-direction:column}
+  .department-v5-footer .leadership-actions{justify-content:flex-start}
+}
+
+/* ============================================================
+   v6 – РПП предмети и ръчни компетентности
+   ============================================================ */
+.rpp-admin-panel{margin-top:1.5rem}
+.rpp-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1rem}
+.rpp-panel-head h2{margin:0 0 .3rem}
+.rpp-create-form{border:1px solid #e2e8f2;border-radius:12px;padding:1rem;background:#fafcff;margin-bottom:1.2rem}
+.rpp-create-form .rpp-name-field{display:block;max-width:760px;margin-bottom:.9rem}
+.rpp-create-form .rpp-name-field input{width:100%}
+.rpp-scope-grid{display:grid;grid-template-columns:.75fr 1fr 1fr;gap:.9rem;align-items:start}
+.rpp-create-actions{display:flex;justify-content:flex-end;margin-top:.9rem}
+.rpp-list{display:grid;gap:.9rem}
+.rpp-item{border:1px solid #dfe5ee;border-radius:12px;background:#fff;padding:1rem}
+.rpp-item.off{opacity:.68;background:#fafbfc}
+.rpp-title-row{display:grid;grid-template-columns:minmax(280px,1fr) auto;gap:.8rem;align-items:end;margin-bottom:.9rem}
+.rpp-title-row label{margin:0}
+.rpp-title-row input{width:100%}
+.rpp-item-actions{display:flex;align-items:center;justify-content:flex-end;gap:.8rem;margin-top:.9rem}
+.rpp-secondary-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.55rem;padding-top:.55rem;border-top:1px solid #edf0f5}
+.rpp-secondary-actions form{margin:0}
+
+.comps.is-rpp .clist{display:block}
+.manual-comp-row{display:grid;grid-template-columns:28px minmax(0,1fr) 30px;gap:.65rem;align-items:center;padding:.62rem .72rem;border-bottom:1px solid #edf0f5;background:#fff}
+.manual-comp-row:last-child{border-bottom:0}
+.manual-comp-row[data-state="mastered"]{background:#f3fbf6}
+.manual-comp-row[data-state="partial"]{background:#fffbf0}
+.manual-comp-row[data-state="not_mastered"]{background:#fdf4f4}
+.manual-state-box{width:26px;height:26px;border:2px solid #b8c2d0;border-radius:6px;background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;line-height:1;cursor:pointer;padding:0}
+.manual-comp-row[data-state="mastered"] .manual-state-box{background:var(--ok);border-color:var(--ok);color:#fff}
+.manual-comp-row[data-state="partial"] .manual-state-box{background:var(--yellow);border-color:var(--yellow);color:#fff;font-size:1.25rem}
+.manual-comp-row[data-state="not_mastered"] .manual-state-box{background:var(--red);border-color:var(--red);color:#fff}
+.manual-state-box:disabled{cursor:default;opacity:.9}
+.manual-comp-text{min-width:0;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.manual-comp-text input[type="text"]{width:100%;min-width:0;margin:0;padding:.55rem .65rem;border:1px solid #cfd7e3;border-radius:7px;background:#fff}
+.manual-comp-text .tag{font-size:.72rem;padding:.05rem .4rem;border-radius:99px;background:#fdf1dc;color:var(--amber)}
+.manual-comp-remove{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#7a8594;font-size:1.2rem;cursor:pointer;line-height:1}
+.manual-comp-remove:hover{background:#fbecec;color:var(--red)}
+.manual-empty{padding:.9rem!important;margin:0}
+
+@media (max-width:980px){
+  .rpp-scope-grid{grid-template-columns:1fr 1fr}
+  .rpp-scope-grid .scope-pill-group:first-child{grid-column:1 / -1}
+}
+@media (max-width:680px){
+  .rpp-panel-head{display:block}
+  .rpp-panel-head .badge{display:inline-block;margin-top:.4rem}
+  .rpp-scope-grid{grid-template-columns:1fr}
+  .rpp-scope-grid .scope-pill-group:first-child{grid-column:auto}
+  .rpp-title-row{grid-template-columns:1fr;align-items:start}
+  .rpp-create-form,.rpp-item{padding:.8rem}
+  .manual-comp-row{grid-template-columns:26px minmax(0,1fr) 28px;gap:.5rem;padding:.55rem}
+}

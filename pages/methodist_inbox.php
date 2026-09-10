@@ -3,12 +3,13 @@ require_once __DIR__ . '/../inc/bootstrap.php';
 require_once __DIR__ . '/../inc/layout.php';
 
 $u = require_user();
-$myDeps = my_departments($u);
-if (!$myDeps && !has_role('admin')) {
+$myDeps = has_role('admin', $u)
+    ? all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name')
+    : my_departments($u);
+if (!$myDeps) {
     http_response_code(403);
     die('<p style="font-family:sans-serif">Не сте председател или заместник на методическо обединение.</p>');
 }
-if (has_role('admin') && !$myDeps) $myDeps = all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name');
 
 $depIds = array_map('intval', array_column($myDeps, 'id'));
 $depId  = (int)($_GET['dep'] ?? ($depIds[0] ?? 0));
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           [$id, (int)($_POST['dep'] ?? 0)]);
         flash('Анализът е върнат на учителя за поправка.');
     }
-    redirect(base_url('pages/methodist_inbox.php?term=' . $term));
+    redirect(base_url('pages/methodist_inbox.php?term=' . $term . '&dep=' . (int)($_POST['dep'] ?? $depId)));
 }
 
 $P = [':d' => $depId, ':y' => $yid, ':t' => $term];
@@ -46,22 +47,38 @@ $sum = $yid ? one(
      FROM mo_v_entries WHERE department_id=:d AND status="sent" AND year_id=:y AND term=:t', $P) : null;
 
 $topFailed = $yid ? all(
-    'SELECT k.title, k.code, s.name AS subject_name, c.grade_level,
-            SUM(ec.state="not_mastered") failed, SUM(ec.state="partial") partial
-     FROM mo_entry_competencies ec
-     JOIN mo_competencies k ON k.id = ec.competency_id
-     JOIN mo_subjects s ON s.id = k.subject_id
-     JOIN mo_entries e ON e.id = ec.entry_id
-     JOIN mo_classes c ON c.id = e.class_id
-     WHERE e.department_id = :d AND e.status="sent" AND e.year_id = :y AND e.term = :t
-     GROUP BY k.id, k.title, k.code, s.name, c.grade_level
-     HAVING failed > 0 ORDER BY failed DESC LIMIT 10', $P) : [];
+    'SELECT z.title,z.code,z.subject_name,z.grade_level,
+            SUM(z.failed) failed,SUM(z.partial) partial
+     FROM (
+       SELECT k.title,k.code,s.name AS subject_name,c.grade_level,
+              SUM(ec.state="not_mastered") failed,SUM(ec.state="partial") partial
+       FROM mo_entry_competencies ec
+       JOIN mo_competencies k ON k.id=ec.competency_id
+       JOIN mo_subjects s ON s.id=k.subject_id
+       JOIN mo_entries e ON e.id=ec.entry_id
+       JOIN mo_classes c ON c.id=e.class_id
+       WHERE e.department_id=:d1 AND e.status="sent" AND e.year_id=:y1 AND e.term=:t1
+       GROUP BY k.id,k.title,k.code,s.name,c.grade_level
+       UNION ALL
+       SELECT mc.title,"РПП" AS code,s.name AS subject_name,c.grade_level,
+              SUM(mc.state="not_mastered") failed,SUM(mc.state="partial") partial
+       FROM mo_entry_manual_competencies mc
+       JOIN mo_entries e ON e.id=mc.entry_id
+       JOIN mo_subjects s ON s.id=e.subject_id
+       JOIN mo_classes c ON c.id=e.class_id
+       WHERE e.department_id=:d2 AND e.status="sent" AND e.year_id=:y2 AND e.term=:t2
+       GROUP BY mc.title,s.name,c.grade_level
+     ) z
+     GROUP BY z.title,z.code,z.subject_name,z.grade_level
+     HAVING failed > 0 OR partial > 0
+     ORDER BY failed DESC,partial DESC LIMIT 10',
+    [':d1'=>$depId,':y1'=>$yid,':t1'=>$term,':d2'=>$depId,':y2'=>$yid,':t2'=>$term]) : [];
 
 header_html('Получени анализи', 'inbox');
 $depName = one('SELECT name FROM mo_departments WHERE id = ?', [$depId])['name'] ?? '—';
 $myRole  = department_role_bg(department_role($depId, $u));
 section_title('Получени анализи · ' . $depName . ($myRole ? ' (' . $myRole . ')' : ''),
-    '<a class="btn primary small" href="' . base_url('pages/methodist_summary.php?term=' . $term) . '">Към обобщението →</a>');
+    '<a class="btn primary small" href="' . base_url('pages/methodist_summary.php?term=' . $term . '&dep=' . $depId) . '">Към обобщението →</a>');
 year_picker($term, ['dep' => $depId]);
 if (count($myDeps) > 1): ?>
   <form class="picker no-print" method="get">
@@ -138,8 +155,9 @@ if (count($myDeps) > 1): ?>
         <td><?= fmt_avg($r['avg_grade']) ?></td>
         <td class="small"><?= e($r['measures']) ?></td>
         <td class="small"><?= $r['sent_at'] ? e(date('d.m.Y', strtotime($r['sent_at']))) : '' ?></td>
-        <td>
-          <form method="post" data-confirm="Анализът се връща на учителя за поправка и изчезва от обобщението, докато не го изпрати отново."
+        <td class="acts">
+          <a class="btn small" href="<?= base_url('pages/methodist_entry_view.php?id=' . (int)$r['id'] . '&dep=' . (int)$depId . '&term=' . urlencode($term)) ?>">Преглед</a>
+          <form method="post" style="display:inline" data-confirm="Анализът се връща на учителя за поправка и изчезва от обобщението, докато не го изпрати отново."
                 data-confirm-title="Връщане на анализа" data-confirm-ok="Върни">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">

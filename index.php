@@ -9,7 +9,7 @@ $term = term_code($_GET['term'] ?? 'I');
 
 $btns = [];
 if (has_role('teacher'))   $btns[] = ['url' => base_url('pages/entry.php'), 'label' => 'Въвеждане на анализ', 'sub' => 'по компетентности, по паралелки'];
-if (has_role('methodist')) $btns[] = ['url' => base_url('pages/methodist_inbox.php'), 'label' => 'Получени анализи', 'sub' => 'от учителите към мен'];
+if (leads_department($u) || has_role('admin', $u)) $btns[] = ['url' => base_url('pages/methodist_inbox.php'), 'label' => 'Получени анализи', 'sub' => 'от учителите към мен'];
 if (has_role('deputy'))    $btns[] = ['url' => base_url('pages/deputy_inbox.php'), 'label' => 'Обобщения от МО', 'sub' => 'изпратени от методистите'];
 if (has_role('admin'))     $btns[] = ['url' => base_url('pages/admin_competencies.php'), 'label' => 'Компетентности', 'sub' => 'зареждане от Excel'];
 
@@ -19,11 +19,17 @@ if (has_role('teacher') && $yid) {
              [$u['id'], $yid, $term]);
     $stats[] = ['k' => (int)($s['sent'] ?? 0) . '/' . (int)($s['n'] ?? 0), 'l' => 'изпратени от въведените'];
 }
-if (has_role('methodist') && $yid) {
-    $s = one('SELECT COUNT(*) n, COUNT(DISTINCT user_id) t FROM mo_entries
-              WHERE methodist_id=? AND status="sent" AND year_id=? AND term=?', [$u['id'], $yid, $term]);
-    $stats[] = ['k' => (int)($s['n'] ?? 0), 'l' => 'получени анализа'];
-    $stats[] = ['k' => (int)($s['t'] ?? 0), 'l' => 'учители са изпратили'];
+if ((leads_department($u) || has_role('admin', $u)) && $yid) {
+    $deps = has_role('admin', $u) ? all('SELECT id FROM mo_departments WHERE is_active=1') : my_departments($u);
+    $ids = array_map('intval', array_column($deps, 'id'));
+    if ($ids) {
+        $ph = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge($ids, [$yid, $term]);
+        $s = one('SELECT COUNT(*) n, COUNT(DISTINCT user_id) t FROM mo_entries
+                  WHERE department_id IN (' . $ph . ') AND status="sent" AND year_id=? AND term=?', $params);
+        $stats[] = ['k' => (int)($s['n'] ?? 0), 'l' => 'получени анализа'];
+        $stats[] = ['k' => (int)($s['t'] ?? 0), 'l' => 'учители са изпратили'];
+    }
 }
 if (has_role('deputy') && $yid) {
     $s = one('SELECT COUNT(*) n FROM mo_summaries WHERE status="sent" AND year_id=? AND term=?', [$yid, $term]);
@@ -56,6 +62,6 @@ year_picker($term);
     <li><strong>Зам-директорът</strong> получава готовите обобщения по МО.</li>
   </ol>
   <p class="muted small">Правата ви в модула: <?= e(roles_bg($u['roles'])) ?>.
-     Ако нещо липсва, администрацията го задава от „Роли и методисти“.</p>
+     Ако нещо липсва, администрацията го задава от „Методически обединения“ и „Роли и права“.</p>
 </div>
 <?php footer_html(); ?>

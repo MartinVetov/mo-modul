@@ -2,7 +2,11 @@
 require_once __DIR__ . '/../inc/bootstrap.php';
 require_once __DIR__ . '/../inc/layout.php';
 
-$u = require_role('methodist', 'deputy', 'admin');
+$u = require_user();
+if (!leads_department($u) && !has_role('deputy', $u) && !has_role('admin', $u)) {
+    http_response_code(403);
+    die('<p style="font-family:sans-serif">Нямате права за документи на методическо обединение.</p>');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();

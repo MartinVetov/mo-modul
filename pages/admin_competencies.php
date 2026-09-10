@@ -286,7 +286,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $subjects = all('SELECT s.*, (SELECT COUNT(*) FROM mo_competencies k WHERE k.subject_id = s.id AND k.is_active=1) n
-                 FROM mo_subjects s ORDER BY s.name');
+                 FROM mo_subjects s
+                 WHERE NOT EXISTS (SELECT 1 FROM mo_rpp_subjects r WHERE r.subject_id=s.id)
+                 ORDER BY s.name');
 $profs = programs('profession');
 $specs = programs('specialty');
 $sid   = (int)($_GET['s'] ?? ($subjects[0]['id'] ?? 0));
