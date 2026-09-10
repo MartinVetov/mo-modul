@@ -3,17 +3,28 @@ require_once __DIR__ . '/../inc/bootstrap.php';
 require_once __DIR__ . '/../inc/layout.php';
 
 $u = require_user();
-$myDeps = has_role('admin', $u)
-    ? all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name')
-    : my_departments($u);
+/* Ръководените МО стоят първи: администраторът вижда всички, но по
+   подразбиране застава на своето, а не на първото по азбука. */
+$ledDeps = my_departments($u);
+$ledIds  = array_map('intval', array_column($ledDeps, 'id'));
+
+if (has_role('admin', $u)) {
+    $others = all('SELECT * FROM mo_departments WHERE is_active = 1'
+        . ($ledIds ? ' AND id NOT IN (' . implode(',', $ledIds) . ')' : '')
+        . ' ORDER BY name');
+    $myDeps = array_merge($ledDeps, $others);
+} else {
+    $myDeps = $ledDeps;
+}
+
 if (!$myDeps) {
     http_response_code(403);
     die('<p style="font-family:sans-serif">Не сте председател или заместник на методическо обединение.</p>');
 }
 
 $depIds = array_map('intval', array_column($myDeps, 'id'));
-$depId  = (int)($_GET['dep'] ?? ($depIds[0] ?? 0));
-if ($depIds && !in_array($depId, $depIds, true)) $depId = $depIds[0];
+$depId  = (int)($_GET['dep'] ?? 0);
+if (!in_array($depId, $depIds, true)) $depId = $ledIds[0] ?? $depIds[0];
 if (isset($_GET['year'])) $_SESSION['year_id'] = (int)$_GET['year'];
 $yid  = current_year_id();
 $term = term_code($_GET['term'] ?? 'I');
@@ -85,8 +96,10 @@ if (count($myDeps) > 1): ?>
     <input type="hidden" name="term" value="<?= e($term) ?>">
     <label>Методическо обединение
       <select name="dep" onchange="this.form.submit()">
-        <?php foreach ($myDeps as $d): ?>
-          <option value="<?= (int)$d['id'] ?>" <?= $depId === (int)$d['id'] ? 'selected' : '' ?>><?= e($d['name']) ?></option>
+        <?php foreach ($myDeps as $d):
+            $role = department_role_bg(department_role((int)$d['id'], $u)); ?>
+          <option value="<?= (int)$d['id'] ?>" <?= $depId === (int)$d['id'] ? 'selected' : '' ?>>
+            <?= e($d['name']) ?><?= $role ? ' · ' . e($role) : '' ?></option>
         <?php endforeach; ?>
       </select>
     </label>

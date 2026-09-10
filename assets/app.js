@@ -1141,3 +1141,94 @@
     updateEmpty(picker);
   });
 })();
+
+/* ============================================================
+   Обобщение на МО: проверките стават в браузъра, преди заявката.
+   Досега грешките се хващаха чак на сървъра и страницата се
+   презареждаше – сега изскача съобщителната кутия и действието
+   се прекъсва, без да се губи написаният текст.
+   ============================================================ */
+(function () {
+  'use strict';
+  var form = document.getElementById('summaryForm');
+  if (!form || !window.MO) return;
+
+  function val(name) {
+    var el = form.elements[name];
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  var rules = {
+    send: function () {
+      var problems = [];
+      if (!val('deputy_id')) problems.push('Изберете зам-директор, до когото да изпратите обобщението.');
+      if (!val('summary_text') && !val('strengths') && !val('improvements') && !val('measures')) {
+        problems.push('Попълнете поне един от разделите на обобщението.');
+      }
+      if (form.dataset.noEntries === '1') {
+        problems.push('За този срок няма получени анализи – няма какво да се обобщава.');
+      }
+      return problems;
+    },
+    ai: function () {
+      return form.dataset.noEntries === '1'
+        ? ['За този срок няма получени анализи, затова няма от какво да се направи чернова.']
+        : [];
+    },
+    export: function () {
+      return form.dataset.noEntries === '1'
+        ? ['За този срок няма получени анализи – документът би бил празен.']
+        : [];
+    }
+  };
+
+  form.addEventListener('submit', function (ev) {
+    var btn = ev.submitter;
+    if (!btn || !btn.value || !rules[btn.value]) return;
+
+    var problems = rules[btn.value]();
+    if (!problems.length) return;
+
+    ev.preventDefault();
+    ev.stopImmediatePropagation();   // спира и потвърждението на бутона
+    MO.alert({
+      title: btn.value === 'send' ? 'Обобщението не може да се изпрати' : 'Действието не може да се изпълни',
+      text: problems.length > 1 ? 'Поправете следното:' : '',
+      list: problems.length > 1 ? problems : null,
+      ok: 'Разбрах'
+    });
+    if (problems.length === 1) {
+      // единичен проблем – показваме го като текст, не като списък
+      var m = document.querySelector('.mo-modal-body .txt');
+      if (m) { m.textContent = problems[0]; m.style.display = ''; }
+    }
+
+    // фокус върху проблемното поле
+    if (!val('deputy_id') && form.elements['deputy_id']) form.elements['deputy_id'].focus();
+  }, true);   // capture: изпълнява се преди обработчика на data-confirm
+})();
+
+/* ============================================================
+   Решение на зам-директора: връщането изисква бележка.
+   Проверката е в браузъра, за да не се губи написаното.
+   ============================================================ */
+(function () {
+  'use strict';
+  var form = document.getElementById('deputyForm');
+  if (!form || !window.MO) return;
+
+  form.addEventListener('submit', function (ev) {
+    var btn = ev.submitter;
+    if (!btn || btn.value !== 'return') return;
+    var note = (form.elements['deputy_note'].value || '').trim();
+    if (note.length >= 10) return;
+
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    MO.alert({
+      title: 'Нужна е бележка',
+      text: 'Напишете какво трябва да се поправи – методистът вижда точно този текст, '
+          + 'а обобщението излиза от списъка ви, докато не го изпрати отново.'
+    }).then(function () { form.elements['deputy_note'].focus(); });
+  }, true);
+})();

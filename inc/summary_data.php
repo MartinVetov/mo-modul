@@ -246,3 +246,165 @@ function build_summary_doc(array $D, array $rep, array $u, string $term): array
 
     return ['docx' => $d, 'html' => $h, 'title' => $title];
 }
+
+/* =====================================================================
+ * Обобщение на цялото училище – сглобява се от обобщенията на МО
+ * и от анализите зад тях.
+ * ===================================================================== */
+
+/** Числата и списъците за училищното обобщение. */
+function school_summary_data(int $yid, string $term): array
+{
+    $P = [':y' => $yid, ':t' => $term];
+
+    $sum = one('SELECT COUNT(*) n, COUNT(DISTINCT user_id) teachers,
+                       COUNT(DISTINCT department_id) deps, AVG(avg_grade) avg,
+                       COALESCE(SUM(total_grades),0) grades, COALESCE(SUM(g2),0) weak,
+                       COALESCE(SUM(c_mastered),0) ok, COALESCE(SUM(c_partial),0) partial,
+                       COALESCE(SUM(c_failed),0) no
+                FROM mo_v_entries
+                WHERE year_id = :y AND term = :t AND status = "sent"', $P)
+        ?? ['n'=>0,'teachers'=>0,'deps'=>0,'avg'=>null,'grades'=>0,'weak'=>0,'ok'=>0,'partial'=>0,'no'=>0];
+
+    $byDepartment = all(
+        'SELECT d.id, d.name AS department_name,
+                ' . user_name_sql('c') . ' AS chair_name,
+                (SELECT COUNT(*) FROM mo_v_entries v
+                  WHERE v.department_id = d.id AND v.year_id = :y AND v.term = :t AND v.status = "sent") n,
+                (SELECT AVG(v.avg_grade) FROM mo_v_entries v
+                  WHERE v.department_id = d.id AND v.year_id = :y2 AND v.term = :t2 AND v.status = "sent") avg,
+                (SELECT COALESCE(SUM(v.c_failed),0) FROM mo_v_entries v
+                  WHERE v.department_id = d.id AND v.year_id = :y3 AND v.term = :t3 AND v.status = "sent") no,
+                (SELECT s.id FROM mo_summaries s
+                  WHERE s.department_id = d.id AND s.year_id = :y4 AND s.term = :t4 AND s.status = "sent" LIMIT 1) summary_id,
+                (SELECT s.deputy_status FROM mo_summaries s
+                  WHERE s.department_id = d.id AND s.year_id = :y5 AND s.term = :t5 AND s.status = "sent" LIMIT 1) deputy_status
+         FROM mo_departments d
+         LEFT JOIN users c ON c.id = d.chair_id
+         WHERE d.is_active = 1
+         ORDER BY d.name',
+        [':y'=>$yid, ':t'=>$term, ':y2'=>$yid, ':t2'=>$term, ':y3'=>$yid, ':t3'=>$term,
+         ':y4'=>$yid, ':t4'=>$term, ':y5'=>$yid, ':t5'=>$term]);
+
+    $summaries = all(
+        'SELECT s.*, d.name AS department_name,
+                ' . user_name_sql('f') . ' AS author_name
+         FROM mo_summaries s
+         LEFT JOIN mo_departments d ON d.id = s.department_id
+         LEFT JOIN users f ON f.id = COALESCE(s.finalized_by, s.methodist_id)
+         WHERE s.status = "sent" AND s.year_id = :y AND s.term = :t
+         ORDER BY d.name', $P);
+
+    $failed = all(
+        'SELECT k.title, s.name subject_name, c.grade_level,
+                SUM(ec.state="not_mastered") failed, SUM(ec.state="partial") partial
+         FROM mo_entry_competencies ec
+         JOIN mo_competencies k ON k.id = ec.competency_id
+         JOIN mo_subjects s ON s.id = k.subject_id
+         JOIN mo_entries e ON e.id = ec.entry_id
+         JOIN mo_classes c ON c.id = e.class_id
+         WHERE e.status = "sent" AND e.year_id = :y AND e.term = :t
+         GROUP BY k.id, k.title, s.name, c.grade_level
+         HAVING failed > 0 ORDER BY failed DESC LIMIT 15', $P);
+
+    return compact('sum', 'byDepartment', 'summaries', 'failed')
+         + ['year' => one('SELECT label FROM mo_years WHERE id=?', [$yid])['label'] ?? ''];
+}
+
+/**
+ * Word документът на училищното обобщение – същото форматиране като при
+ * МО: Times New Roman, 12pt двустранно, заглавия 16pt центрирани.
+ *
+ * @return array{docx: DocxWriter, html: string, title: string}
+ */
+function build_school_doc(array $D, array $rep, array $u, string $term): array
+{
+    $title = trim((string)($rep['title'] ?? '')) !== ''
+        ? (string)$rep['title']
+        : 'Обобщен анализ на училището';
+    $sub = SCHOOL_NAME . ' · ' . $D['year'] . ' · ' . term_label($term);
+    $s = $D['sum'];
+
+    $d = new DocxWriter(mb_strtoupper($title, 'UTF-8'), $sub);
+
+    $d->heading('1. Обобщени резултати');
+    $intro = sprintf(
+        'Анализът обхваща %d анализа от %d учители в %d методически обединения. Общият брой '
+      . 'поставени оценки е %d при среден успех %s. Отчетени са %d усвоени, %d частично усвоени '
+      . 'и %d неусвоени компетентности.',
+        (int)$s['n'], (int)$s['teachers'], (int)$s['deps'], (int)$s['grades'],
+        fmt_avg($s['avg']), (int)$s['ok'], (int)$s['partial'], (int)$s['no']);
+    $d->paragraph($intro);
+
+    if ($D['byDepartment']) {
+        $d->heading('2. По методически обединения');
+        $rows = [];
+        foreach ($D['byDepartment'] as $r) {
+            $rows[] = [$r['department_name'], $r['chair_name'] ?: '—', (string)(int)$r['n'],
+                       fmt_avg($r['avg']), (string)(int)$r['no'],
+                       $r['summary_id'] ? 'изпратено' : 'няма'];
+        }
+        $d->table(['Методическо обединение', 'Председател', 'Анализи', 'Среден успех',
+                   'Неусвоени', 'Обобщение'], $rows);
+    }
+
+    $n = 3;
+    foreach ([['summary_text', 'Обща оценка'], ['strengths', 'Силни страни'],
+              ['improvements', 'Области за подобрение'], ['measures', 'Мерки за следващия период'],
+              ['notes', 'Бележки']] as [$f, $lab]) {
+        if (trim((string)($rep[$f] ?? '')) === '') continue;
+        $d->heading($n++ . '. ' . $lab);
+        $d->paragraph((string)$rep[$f]);
+    }
+
+    if ($D['failed']) {
+        $d->heading($n++ . '. Компетентности с най-много пропуски');
+        $rows = [];
+        foreach ($D['failed'] as $f) {
+            $rows[] = [$f['title'], $f['subject_name'], (int)$f['grade_level'] . ' клас',
+                       (string)(int)$f['partial'], (string)(int)$f['failed']];
+        }
+        $d->table(['Компетентност', 'Предмет', 'Клас', 'Частично', 'Неусвоена'], $rows);
+    }
+
+    if ($D['summaries']) {
+        $d->heading($n++ . '. Изводи от методическите обединения');
+        foreach ($D['summaries'] as $sm) {
+            $d->paragraph($sm['department_name'] . ' (' . ($sm['author_name'] ?: '—') . ')',
+                          ['bold' => true, 'align' => 'left']);
+            foreach ([['strengths', 'Силни страни'], ['improvements', 'Области за подобрение'],
+                      ['measures', 'Мерки']] as [$f, $lab]) {
+                if (trim((string)($sm[$f] ?? '')) === '') continue;
+                $d->paragraph($lab . ': ' . $sm[$f]);
+            }
+        }
+    }
+
+    $d->signature('Изготвил: ' . $u['display_name'] . ' ......................',
+                  'Дата: ' . date('d.m.Y'));
+
+    /* HTML копие за преглед */
+    $h = '<h1>' . e(mb_strtoupper($title, 'UTF-8')) . '</h1><p class="center"><em>' . e($sub) . '</em></p>';
+    $h .= '<h2>1. Обобщени резултати</h2><p>' . e($intro) . '</p>';
+    if ($D['byDepartment']) {
+        $h .= '<h2>2. По методически обединения</h2><table><tr><th>МО</th><th>Председател</th>'
+            . '<th>Анализи</th><th>Среден успех</th><th>Неусвоени</th><th>Обобщение</th></tr>';
+        foreach ($D['byDepartment'] as $r) {
+            $h .= '<tr><td>' . e($r['department_name']) . '</td><td>' . e($r['chair_name'] ?: '—') . '</td>'
+                . '<td>' . (int)$r['n'] . '</td><td>' . fmt_avg($r['avg']) . '</td>'
+                . '<td>' . (int)$r['no'] . '</td><td>' . ($r['summary_id'] ? 'изпратено' : 'няма') . '</td></tr>';
+        }
+        $h .= '</table>';
+    }
+    $k = 3;
+    foreach ([['summary_text', 'Обща оценка'], ['strengths', 'Силни страни'],
+              ['improvements', 'Области за подобрение'], ['measures', 'Мерки за следващия период'],
+              ['notes', 'Бележки']] as [$f, $lab]) {
+        if (trim((string)($rep[$f] ?? '')) === '') continue;
+        $h .= '<h2>' . $k++ . '. ' . e($lab) . '</h2><p>' . nl2br(e((string)$rep[$f])) . '</p>';
+    }
+    $h .= '<p style="margin-top:2.5em">Изготвил: ' . e($u['display_name'])
+        . ' ......................&nbsp;&nbsp;&nbsp;&nbsp; Дата: ' . date('d.m.Y') . '</p>';
+
+    return ['docx' => $d, 'html' => $h, 'title' => $title];
+}

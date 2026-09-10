@@ -97,7 +97,7 @@ section_title('Роли и права в модула');
             <?php if ($r === 'methodist'): ?>
               <span class="badge ok" title="Автоматична роля от ръководството на МО"><?= e(role_bg($r)) ?></span>
             <?php else: ?>
-              <form method="post" style="display:inline">
+              <form method="post" style="display:inline" data-danger data-confirm-title="Премахване на роля" data-confirm-ok="Премахни" data-confirm="Правата по тази роля отпадат веднага. Въведените до момента данни остават непокътнати.">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="role_del">
                 <input type="hidden" name="user_id" value="<?= (int)$x['id'] ?>">

@@ -318,7 +318,7 @@ section_title('Компетентности по ДОС и учебни прог
     <div class="flash warn">Разширението <strong>zip</strong> на PHP е изключено – приемат се само .csv файлове.</div>
   <?php endif; ?>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" data-confirm-title="Зареждане на компетентности" data-confirm-ok="Зареди" data-confirm="Файловете ще бъдат заредени за отметнатите професии. Ако не сте сигурни, пуснете първо проба без запис.">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="import">
     <fieldset class="picker-group">
@@ -576,7 +576,7 @@ section_title('Компетентности по ДОС и учебни прог
         <td><?= $c['is_active'] ? '<span class="badge ok">активна</span>' : '<span class="badge">скрита</span>' ?></td>
         <td class="acts">
           <a class="btn small" href="<?= base_url('pages/admin_competencies.php?s=' . $sid . '&g=' . $grade . '&edit=' . (int)$c['id']) ?>">Редакция</a>
-          <form method="post" style="display:inline">
+          <form method="post" style="display:inline" data-confirm-title="Промяна на статуса" data-confirm-ok="Продължи" data-confirm="Скритата компетентност спира да се показва на учителите. Направените отметки по нея се запазват.">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="toggle">
             <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">

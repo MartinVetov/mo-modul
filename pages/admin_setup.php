@@ -170,7 +170,7 @@ section_title('Учебни години, паралелки, професии �
         <td><?= (int)$y['n_entries'] ?></td>
         <td><?= $y['is_active'] ? '<span class="badge ok">да</span>' : '' ?></td>
         <td><?php if (!$y['is_active']): ?>
-          <form method="post"><?= csrf_field() ?>
+          <form method="post" data-confirm-title="Смяна на активната година" data-confirm-ok="Смени" data-confirm="Всички учители минават на новата учебна година. Ако паралелките за нея още не са прехвърлени, менютата им ще са празни."><?= csrf_field() ?>
             <input type="hidden" name="action" value="year_activate">
             <input type="hidden" name="id" value="<?= (int)$y['id'] ?>">
             <button class="btn small" type="submit">Направи активна</button>
@@ -182,7 +182,7 @@ section_title('Учебни години, паралелки, професии �
   </table>
 
   <h3>Допълнително прехвърляне</h3>
-  <form method="post" class="picker">
+  <form method="post" class="picker" data-confirm-title="Прехвърляне на паралелките" data-confirm-ok="Прехвърли" data-confirm="Паралелките се качват с един клас нагоре със своята професия, а дванадесетите завършват. Действието може да се повтори без вреда.">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="promote">
     <label>От година
@@ -234,7 +234,7 @@ section_title('Учебни години, паралелки, професии �
         <td><?= (int)$p['n_comp'] ?></td>
         <td><?= $p['is_active'] ? 'активна' : 'скрита' ?></td>
         <td>
-          <form method="post"><?= csrf_field() ?>
+          <form method="post" data-confirm-title="Промяна на статуса" data-confirm-ok="Продължи" data-confirm="Скритата професия няма да се предлага при нови паралелки и компетентности."><?= csrf_field() ?>
             <input type="hidden" name="action" value="prog_toggle">
             <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
             <button class="btn small ghost" type="submit"><?= $p['is_active'] ? 'Скрий' : 'Върни' ?></button>
@@ -263,7 +263,7 @@ section_title('Учебни години, паралелки, професии �
     <button class="btn primary" type="submit">Добави</button>
   </form>
 
-  <form method="post" class="picker">
+  <form method="post" class="picker" data-confirm-title="Задаване наведнъж" data-confirm-ok="Запиши" data-confirm="Избраните паралелки получават тази професия. Тя определя кои компетентности виждат учителите в тях.">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="class_prog_bulk">
     <label>Задай наведнъж
@@ -312,7 +312,7 @@ section_title('Учебни години, паралелки, професии �
         <td><?= (int)$c['n'] ?></td>
         <td><?= $c['is_active'] ? '<span class="badge ok">активна</span>' : '<span class="badge">скрита</span>' ?></td>
         <td>
-          <form method="post"><?= csrf_field() ?>
+          <form method="post" data-confirm-title="Промяна на статуса" data-confirm-ok="Продължи" data-confirm="Скритата паралелка изчезва от менютата на учителите. Анализите по нея остават."><?= csrf_field() ?>
             <input type="hidden" name="action" value="class_toggle">
             <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
             <button class="btn small ghost" type="submit"><?= $c['is_active'] ? 'Скрий' : 'Върни' ?></button>

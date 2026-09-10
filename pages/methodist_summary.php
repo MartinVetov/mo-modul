@@ -6,16 +6,30 @@ require_once __DIR__ . '/../lib/DocxWriter.php';
 require_once __DIR__ . '/../inc/summary_data.php';
 
 $u = require_user();
-$myDeps = has_role('admin', $u)
-    ? all('SELECT * FROM mo_departments WHERE is_active=1 ORDER BY name')
-    : my_departments($u);
+/* Ръководените МО стоят първи: администраторът вижда всички, но по
+   подразбиране застава на своето, а не на първото по азбука. */
+$ledDeps = my_departments($u);
+$ledIds  = array_map('intval', array_column($ledDeps, 'id'));
+
+if (has_role('admin', $u)) {
+    $others = all('SELECT * FROM mo_departments WHERE is_active = 1'
+        . ($ledIds ? ' AND id NOT IN (' . implode(',', $ledIds) . ')' : '')
+        . ' ORDER BY name');
+    $myDeps = array_merge($ledDeps, $others);
+} else {
+    $myDeps = $ledDeps;
+}
+
 if (!$myDeps) {
     http_response_code(403);
     die('<p style="font-family:sans-serif">Не сте председател или заместник на методическо обединение.</p>');
 }
+
 $depIds = array_map('intval', array_column($myDeps, 'id'));
-$depId  = (int)($_GET['dep'] ?? $_POST['dep'] ?? ($depIds[0] ?? 0));
-if (!in_array($depId, $depIds, true)) $depId = $depIds[0];
+$depId  = (int)($_GET['dep'] ?? $_POST['dep'] ?? 0);
+if (!in_array($depId, $depIds, true)) {
+    $depId = $ledIds[0] ?? $depIds[0];   // първо своето, чак после чуждо
+}
 $dep    = one('SELECT * FROM mo_departments WHERE id = ?', [$depId]);
 if (isset($_GET['year'])) $_SESSION['year_id'] = (int)$_GET['year'];
 $yid  = current_year_id();
@@ -109,6 +123,28 @@ $myRole = department_role_bg(department_role($depId, $u));
 section_title('Обобщение · ' . ($dep['name'] ?? '') . ($myRole ? ' (' . $myRole . ')' : ''),
     '<a class="btn small" href="' . base_url('pages/methodist_docs.php') . '">Моите документи</a>');
 year_picker($term, ['dep' => $depId]);
+
+/* Меню за смяна на МО – показва се, когато човекът ръководи повече от едно
+   (или е администратор и вижда всички). Досега МО-то се сменяше само чрез
+   ръчна промяна на адреса. */
+if (count($myDeps) > 1): ?>
+  <form class="picker no-print" method="get">
+    <input type="hidden" name="term" value="<?= e($term) ?>">
+    <label>Методическо обединение
+      <select name="dep" onchange="this.form.submit()">
+        <?php foreach ($myDeps as $d):
+            $role = department_role_bg(department_role((int)$d['id'], $u));
+            $n = (int)(one('SELECT COUNT(*) n FROM mo_entries
+                            WHERE department_id=? AND year_id=? AND term=? AND status="sent"',
+                           [$d['id'], $yid, $term])['n'] ?? 0); ?>
+          <option value="<?= (int)$d['id'] ?>" <?= $depId === (int)$d['id'] ? 'selected' : '' ?>>
+            <?= e($d['name']) ?><?= $role ? ' · ' . e($role) : '' ?> · <?= $n ?> анализа
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </label>
+  </form>
+<?php endif;
 ?>
 
 <div class="cards">
@@ -164,7 +200,23 @@ year_picker($term, ['dep' => $depId]);
 </div>
 <?php endif; ?>
 
-<form method="post" id="summaryForm" class="panel">
+<?php if (($rep['deputy_status'] ?? '') === 'returned' && trim((string)($rep['deputy_note'] ?? '')) !== ''): ?>
+  <div class="flash warn">
+    <strong>Върнато за доработка от зам-директора</strong>
+    <?= !empty($rep['deputy_seen_at']) ? ' на ' . e(date('d.m.Y', strtotime($rep['deputy_seen_at']))) : '' ?>:
+    <br><?= nl2br(e($rep['deputy_note'])) ?>
+    <br><span class="small">Поправете обобщението и го изпратете отново.</span>
+  </div>
+<?php elseif (($rep['deputy_status'] ?? '') === 'acknowledged'): ?>
+  <div class="flash ok">
+    Обобщението е прието от зам-директора<?= !empty($rep['deputy_seen_at']) ? ' на ' . e(date('d.m.Y', strtotime($rep['deputy_seen_at']))) : '' ?>.
+    <?php if (trim((string)($rep['deputy_note'] ?? '')) !== ''): ?>
+      <br><strong>Бележка:</strong> <?= nl2br(e($rep['deputy_note'])) ?>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
+<form method="post" id="summaryForm" class="panel" data-no-entries="<?= ((int)$D['sum']['n'] === 0) ? '1' : '0' ?>">
   <?= csrf_field() ?>
   <input type="hidden" name="term" value="<?= e($term) ?>">
   <input type="hidden" name="dep" value="<?= (int)$depId ?>">
@@ -224,7 +276,7 @@ year_picker($term, ['dep' => $depId]);
         <span class="meta"><strong><?= e($d['title']) ?></strong>
           <small><?= e(date('d.m.Y H:i', strtotime($d['created_at']))) ?> · <?= round($d['size_bytes'] / 1024, 1) ?> KB</small></span>
         <span class="acts">
-          <a class="btn small" href="<?= base_url('pages/document.php?id=' . (int)$d['id'] . '&view=1') ?>">Преглед / PDF</a>
+          <a class="btn small ghost" href="<?= base_url('pages/document.php?id=' . (int)$d['id'] . '&view=1') ?>">Преглед</a>
           <a class="btn small primary" href="<?= base_url('pages/document.php?id=' . (int)$d['id']) ?>">Изтегли</a>
         </span>
       </div>

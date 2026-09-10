@@ -1735,3 +1735,7 @@ body.mo-modal-open{overflow:hidden}
   .rpp-create-form,.rpp-item{padding:.8rem}
   .manual-comp-row{grid-template-columns:26px minmax(0,1fr) 28px;gap:.5rem;padding:.55rem}
 }
+
+/* отвореният ред в списъка на зам-директора */
+table.grid tr.row-open{background:#eef3fb}
+table.grid tr.row-open td{border-bottom-color:#cfdcf0}

@@ -1,5 +1,5 @@
 <?php
-/** Изтегляне на .docx файла или преглед в браузъра (за печат в PDF). */
+/** Изтегляне на .docx файла или преглед в браузъра. */
 require_once __DIR__ . '/../inc/bootstrap.php';
 
 $u  = require_user();
@@ -25,10 +25,9 @@ if (!empty($_GET['view'])) {
     header_html($d['title'], 'docs');
     ?>
     <div class="picker no-print">
-      <button class="btn primary" type="button" onclick="window.print()">Печат / Запази като PDF</button>
       <a class="btn" href="<?= base_url('pages/document.php?id=' . (int)$d['id']) ?>">Изтегли Word</a>
       <a class="btn ghost" href="<?= base_url('pages/methodist_docs.php') ?>">Назад</a>
-      <span class="muted small">За PDF: Ctrl+P → „Запази като PDF“.</span>
+      <span class="muted small">Документът се отваря в Word след изтегляне.</span>
     </div>
     <article class="a4"><?= $d['html_snapshot'] ?: '<p>Няма запазено копие за преглед.</p>' ?></article>
     <?php

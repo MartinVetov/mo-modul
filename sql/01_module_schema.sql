@@ -39,8 +39,7 @@ CREATE TABLE IF NOT EXISTS mo_departments (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_dep_chair FOREIGN KEY (chair_id) REFERENCES users(id) ON DELETE SET NULL,
-  CONSTRAINT fk_dep_deputy FOREIGN KEY (deputy_id) REFERENCES users(id) ON DELETE SET NULL,
-  CONSTRAINT chk_dep_heads CHECK (chair_id IS NULL OR deputy_id IS NULL OR chair_id <> deputy_id)
+  CONSTRAINT fk_dep_deputy FOREIGN KEY (deputy_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS mo_subjects (

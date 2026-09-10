@@ -632,7 +632,9 @@ section_title('Методически обединения', '<a class="btn smal
             <span><strong><?= (int)$d['n_entries'] ?></strong> изпратени анализа</span>
           </div>
           <div class="leadership-actions">
-            <form action="<?= e($adminPostUrl) ?>" method="post" data-ajax-admin data-refresh="all">
+            <form action="<?= e($adminPostUrl) ?>" method="post" data-ajax-admin data-refresh="all"
+                  data-confirm-title="Промяна на статуса" data-confirm-ok="Продължи"
+                  data-confirm="Скритото МО не приема нови анализи. Изпратените до момента остават достъпни.">
               <?= csrf_field() ?><input type="hidden" name="action" value="dep_toggle"><input type="hidden" name="id" value="<?= $depId ?>">
               <button class="btn small ghost" type="submit"><?= $d['is_active']?'Скрий':'Върни' ?></button>
             </form>

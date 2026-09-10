@@ -36,8 +36,8 @@ section_title('Моите документи',
 <div class="panel">
   <p class="muted small">Всеки път, когато изготвите или изпратите обобщение, тук се запазва
      копие във формат Word (Times New Roman, 12pt двустранно подравнен текст, центрирани
-     заглавия 16pt). „Преглед / PDF“ отваря документа в браузъра – оттам с <strong>Ctrl+P →
-     Запази като PDF</strong> го получавате в PDF. За редакция изтеглете файла и го отворете в Word.</p>
+     заглавия 16pt). „Преглед“ показва документа в браузъра, а „Изтегли“ го дава като Word файл,
+     готов за редакция и подпис.</p>
 
   <?php if (!$docs): ?>
     <p class="muted">Още няма изготвени документи.</p>
@@ -53,7 +53,7 @@ section_title('Моите документи',
                  · <?= round($d['size_bytes'] / 1024, 1) ?> KB</small>
         </span>
         <span class="acts">
-          <a class="btn small" href="<?= base_url('pages/document.php?id=' . (int)$d['id'] . '&view=1') ?>">Преглед / PDF</a>
+          <a class="btn small ghost" href="<?= base_url('pages/document.php?id=' . (int)$d['id'] . '&view=1') ?>">Преглед</a>
           <a class="btn small primary" href="<?= base_url('pages/document.php?id=' . (int)$d['id']) ?>">Изтегли</a>
           <form method="post" style="display:inline" data-danger
                 data-confirm="Документът и файлът към него ще бъдат изтрити безвъзвратно."
